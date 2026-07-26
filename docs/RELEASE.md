@@ -8,6 +8,8 @@ feature PR --> main --> Release Please PR (review) --> merge --> tag vX.Y.Z + Gi
 
 ## Prerequisites
 
+CI/Release run on the org self-hosted runners (`self-hosted`, `linux`, `aelion`), same as aelion-cloud.
+
 On `main`, enable branch protection:
 
 - Require a pull request before merging
