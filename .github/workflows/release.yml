@@ -53,8 +53,10 @@ jobs:
       - name: Resolve version
         id: version
         run: |
-          VERSION="${TAG#v}"
+          # Tags may be v0.1.0 or aelion-aero-v0.1.0 (release-please component tag).
+          VERSION="${TAG##*v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          ls -la aero-paper/build/libs/ aero-velocity/build/libs/ || true
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
 
@@ -62,6 +64,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.release-please.outputs.tag_name }}
+          fail_on_unmatched_files: true
           files: |
             aero-paper/build/libs/aero-paper-${{ steps.version.outputs.version }}.jar
             aero-velocity/build/libs/aero-velocity-${{ steps.version.outputs.version }}.jar
