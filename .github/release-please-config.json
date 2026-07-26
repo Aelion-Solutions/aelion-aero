@@ -1,0 +1,22 @@
+{
+  "$schema": "https://raw.githubusercontent.com/googleapis/release-please/main/schemas/config.json",
+  "release-type": "simple",
+  "packages": {
+    ".": {
+      "package-name": "aelion-aero",
+      "changelog-path": "CHANGELOG.md",
+      "extra-files": [
+        {
+          "type": "generic",
+          "path": "gradle.properties",
+          "pattern": "version=(.+)"
+        },
+        {
+          "type": "generic",
+          "path": "aero-common/src/main/java/com/aelion/aero/common/AeroVersion.java",
+          "pattern": "VERSION = \"([^\"]+)\""
+        }
+      ]
+    }
+  }
+}

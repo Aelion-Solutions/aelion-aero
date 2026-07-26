@@ -1,0 +1,26 @@
+name: AelionAero
+version: ${version}
+main: com.aelion.aero.paper.AeroPaperPlugin
+api-version: "1.21"
+author: Aelion Solutions
+description: Connects this Paper server to Aelion Cloud
+website: https://github.com/Aelion-Solutions/aelion-aero
+
+commands:
+  ae:
+    description: Aelion Aero admin commands
+    usage: /ae <help|info|reload|ping>
+    aliases: [aec]
+    permission: aelion.aero.info
+    permission-message: You do not have permission to use Aelion Aero.
+
+permissions:
+  aelion.aero.info:
+    description: View Aelion Aero status
+    default: true
+  aelion.aero.admin:
+    description: Reload config and admin actions
+    default: op
+  aelion.aero.create:
+    description: Create servers/groups via panel (reserved)
+    default: op
