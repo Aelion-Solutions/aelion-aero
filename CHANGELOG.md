@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.1](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.2.0...v0.2.1) (2026-07-27)
+
+
+### Bug Fixes
+
+* **ci:** bump plugin version files and build release JARs from tag ([aa45799](https://github.com/Aelion-Solutions/aelion-aero/commit/aa45799f6789bf6c227acde9ef7cc0a6878bde4d))
+
 ## [0.2.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.1.0...v0.2.0) (2026-07-27)
 
 
