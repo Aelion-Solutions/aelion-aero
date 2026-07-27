@@ -59,6 +59,7 @@ public final class AeroVelocityPlugin {
         } catch (Exception e) {
             logger.error("Failed to load Aero config", e);
         }
+        proxy.getEventManager().register(this, new BackendPlayerRouter(registryService, logger));
         AeroVelocityCommand.register(this);
         logger.info("{} enabled on {}", AeroConstants.NAME, proxy.getVersion().getName());
     }

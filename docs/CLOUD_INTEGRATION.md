@@ -8,14 +8,16 @@ This document describes what **aelion-cloud** must add later. Aero implements th
 |---------|------|------|
 | Admin / create / info | Plugin → panel HTTPS | `Authorization: Bearer <server-token>` from `config.yml` |
 | Hot backend sync | Panel → daemon RPC → localhost Aero Velocity | `X-Aero-Control-Token` + bind `127.0.0.1` only |
-| On-disk `velocity.toml` | Daemon `UpdateProxyBackends` (already exists) | Unchanged |
+| On-disk proxy config | Daemon keeps server maps empty | Live map is Aero memory only |
 
 ```text
 scale member RUNNING
   → panel syncProxyBackends
-  → daemon ApplyBackendRegistry (files)
+  → daemon clears on-disk proxy server maps (no live names written)
   → daemon PUT http://127.0.0.1:<control.port>/v1/backends
-  → Aero registers servers live
+  → Aero registers/unregisters servers in process memory
+  → Aero routes new logins (Velocity PlayerChooseInitialServerEvent / Bungee ServerConnectEvent)
+  → on deregister: move players to a remaining lobby/try, else disconnect
   → on success: clear proxyConfigPendingRestart
   → on failure: keep restart-pending (today’s behavior)
 ```
@@ -63,13 +65,23 @@ req.setMemory(2048);
 CreateServerResponse created = new HttpPanelClient(config).createServer(req);
 ```
 
-## Velocity control API (implemented in Aero)
+## Proxy control API (implemented in Aero)
+
+**Live registry:** on-disk proxy server maps stay empty. Aero mutates the proxy’s
+in-memory server map only. Join routing uses platform events (lobby → try → any).
+On deregister, players are moved to a remaining lobby/try, or disconnected if none.
 
 - `GET /v1/health` — `{ "ok": true, "plugin": "AelionAero", "version": "..." }`
 - `GET /v1/backends` — last applied registry
 - `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }`
+  - Registers/updates/removes live servers
+  - Does **not** write backends into `velocity.toml` / Bungee `config.yml`
+  - Sets initial server on login from lobby → try → any backend
+  - Evacuates players off removed backends to a lobby/try (or disconnects if none)
 - Header: `X-Aero-Control-Token: <control.token>`
 - Bind: loopback only
+
+A proxy restart clears the memory map until the panel/daemon re-PUTs the current registry.
 
 ### Manual test (no cloud)
 

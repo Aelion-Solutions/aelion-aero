@@ -56,7 +56,7 @@ jobs:
           # Tags may be v0.1.0 or aelion-aero-v0.1.0 (release-please component tag).
           VERSION="${TAG##*v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          ls -la aero-paper/build/libs/ aero-velocity/build/libs/ || true
+          ls -la aero-paper/build/libs/ aero-velocity/build/libs/ aero-bungee/build/libs/ || true
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
 
@@ -68,5 +68,6 @@ jobs:
           files: |
             aero-paper/build/libs/aero-paper-${{ steps.version.outputs.version }}.jar
             aero-velocity/build/libs/aero-velocity-${{ steps.version.outputs.version }}.jar
+            aero-bungee/build/libs/aero-bungee-${{ steps.version.outputs.version }}.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

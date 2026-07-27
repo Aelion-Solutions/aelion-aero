@@ -29,6 +29,7 @@ That makes the release-please PR the approval gate.
 7. The same workflow builds and uploads:
    - `aero-paper-X.Y.Z.jar`
    - `aero-velocity-X.Y.Z.jar`
+   - `aero-bungee-X.Y.Z.jar`
 
 ## Manual re-run
 

@@ -18,3 +18,4 @@ rootProject.name = "aelion-aero"
 include("aero-common")
 include("aero-paper")
 include("aero-velocity")
+include("aero-bungee")
