@@ -66,13 +66,38 @@ Java client: `com.aelion.aero.common.api.HttpPanelClient`.
 ### Fleet bridge for sibling plugins
 
 Paper Aero registers `com.aelion.aero.api.AeroFleetService` on Bukkit ServicesManager.
-First-party plugins (Signs, later NPCs) SoftDepend `AelionAero` and look up that service — they do
+First-party plugins (Signs, later NPCs) depend on `AelionAero` and look up that service — they do
 **not** carry their own panel tokens.
 
 - `listServers()` / `listGroups()` — cached panel poll (~2s TTL)
 - `connectPlayer(uuid, proxyServerName)` — BungeeCord plugin messaging `Connect` (Velocity legacy channel)
 
-Keep the `com.aelion.aero.api` FQCN in sync with copies under aelion-cloud-plugins.
+#### Maven (`aero-api`)
+
+Thin compile-only artifact (no Minecraft deps), published to GitHub Packages on each Aero release
+(and via **Actions → Publish aero-api**):
+
+```text
+com.aelion.aero:aero-api:<aero-version>
+https://maven.pkg.github.com/Aelion-Solutions/aelion-aero
+```
+
+Consumers need a GitHub token with `read:packages` (and SSO authorized for the org if required):
+
+```kotlin
+maven {
+    url = uri("https://maven.pkg.github.com/Aelion-Solutions/aelion-aero")
+    credentials {
+        username = System.getenv("GITHUB_ACTOR") ?: "token"
+        password = System.getenv("GITHUB_TOKEN") ?: ""
+    }
+}
+dependencies {
+    compileOnly("com.aelion.aero:aero-api:0.2.0")
+}
+```
+
+At runtime, types come from the Aero plugin JAR (do not shade `aero-api` into sibling plugins).
 
 ### Create-server body (proxy Aero token)
 

@@ -2,7 +2,6 @@ package com.aelion.aero.api;
 
 /**
  * One fleet server from the panel Aero API.
- * Keep FQCN in sync with aelion-cloud-plugins copies.
  */
 public final class FleetServerSnapshot {
 

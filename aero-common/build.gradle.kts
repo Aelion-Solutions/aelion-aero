@@ -3,6 +3,7 @@ plugins {
 }
 
 dependencies {
+    api(project(":aero-api"))
     api("com.fasterxml.jackson.core:jackson-databind:2.18.2")
     api("com.fasterxml.jackson.dataformat:jackson-dataformat-yaml:2.18.2")
 

@@ -5,7 +5,6 @@ import java.util.List;
 
 /**
  * One server group with members from the panel Aero API.
- * Keep FQCN in sync with aelion-cloud-plugins copies.
  */
 public final class FleetGroupSnapshot {
 
