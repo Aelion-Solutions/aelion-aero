@@ -20,7 +20,7 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
- * Shared /ae subcommand logic for Paper, Velocity, and Bungee.
+ * Shared /ae (proxy) and /aes (backend) subcommand logic for Paper, Velocity, and Bungee.
  */
 public final class AeroCommandService {
 
@@ -107,7 +107,7 @@ public final class AeroCommandService {
                 createServer(platform, args);
                 break;
             default:
-                platform.send(AeroCommandMessages.unknownSubcommand(sub));
+                platform.send(AeroCommandMessages.unknownSubcommand(sub, platform.isProxy()));
                 break;
         }
     }
@@ -180,7 +180,7 @@ public final class AeroCommandService {
 
     private static void servers(Platform platform, String[] args) {
         if (args.length < 2 || !"list".equalsIgnoreCase(args[1])) {
-            platform.send(AeroCommandMessages.serversUsage());
+            platform.send(AeroCommandMessages.serversUsage(platform.isProxy()));
             return;
         }
         boolean namesOnly = false;
@@ -223,8 +223,7 @@ public final class AeroCommandService {
         if (args.length >= 2
                 && !"list".equalsIgnoreCase(args[1])
                 && !Strings.isBlank(args[1])) {
-            platform.send(AeroCommandStyle.warn(
-                    "Usage: /ae backends [list]"));
+            platform.send(AeroCommandMessages.backendsUsage());
             return;
         }
         platform.sendAll(AeroCommandMessages.formatBackendList(platform.backendsSnapshot()));

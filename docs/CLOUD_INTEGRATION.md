@@ -38,6 +38,8 @@ Plus daemon sidecar `.aelion-aero.ae` (JSON) for hot-reload notify.
 panel-url: "https://panel.example.com"
 server-id: "cms_..."
 token: "<server-scoped-token>"
+# Local/dev only — skip panel TLS verification (self-signed / mkcert). Never enable in prod.
+panel-insecure-ssl: false
 control:
   enabled: true          # true for Velocity/Bungee; false for Paper
   bind: "127.0.0.1"
@@ -54,7 +56,7 @@ Prefix: `/api/aero/v1` (Aero contract envelope — not the standard panel `{ suc
 
 | Method | Path | Purpose | Status |
 |--------|------|---------|--------|
-| `GET` | `/api/aero/v1/health` | `/ae ping` | Live |
+| `GET` | `/api/aero/v1/health` | `/ae ping` / `/aes ping` | Live |
 | `GET` | `/api/aero/v1/servers` | Same-owner fleet (+ players, group, joinable, proxyName) | Live in cloud |
 | `GET` | `/api/aero/v1/servers/:id` | ping fallback (token must match `:id`) | Live |
 | `GET` | `/api/aero/v1/groups` | Same-owner groups + member snapshots (signs / NPCs) | Live in cloud |

@@ -7,8 +7,8 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 
 ## Status (phase 2)
 
-- `/ae` and `/aec`: `help`, `info`, `reload`, `ping`, `servers list` (Paper 1.21 uses Brigadier; older bands use classic commands; styled `[Aero]` prefix + colors)
-- Proxy-only: `backends`, `create-server` (template XOR software+version; panel attaches to calling proxy)
+- Proxy `/ae` (+ `/aec`): `help`, `info`, `reload`, `ping`, `servers list`, plus `backends` and `create-server`
+- Backend `/aes`: `help`, `info`, `reload`, `ping`, `servers list` (Paper 1.21+ uses Brigadier; older bands use classic commands; styled `[Aero]` prefix + colors)
 - Shared panel client + create DTOs in `aero-common` (Java 8 bytecode)
 - Multi-version **backend bands** from MC 1.8 through 1.21+ — see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - Proxy **live backend registry**: empty on-disk server maps; process memory via `PUT /v1/backends`
@@ -22,7 +22,7 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 |--------|----------|----------|
 | `aero-api` | (Maven) | Fleet bridge API for sibling plugins |
 | `aero-common` | (library) | Config, control DTOs, panel client, commands |
-| `aero-bukkit-shared` | (library) | Shared Bukkit fleet + classic `/ae` |
+| `aero-bukkit-shared` | (library) | Shared Bukkit fleet + classic `/aes` |
 | `aero-bukkit-1_8` | `aero-bukkit-1_8-<version>.jar` | Spigot/Paper **1.8–1.12.2** |
 | `aero-bukkit-1_13` | `aero-bukkit-1_13-<version>.jar` | Spigot/Paper **1.13–1.16.5** |
 | `aero-paper-1_17` | `aero-paper-1_17-<version>.jar` | Paper **1.17–1.20.x** |
@@ -71,6 +71,7 @@ Default config:
 panel-url: ""
 server-id: ""
 token: ""
+panel-insecure-ssl: false
 control:
   enabled: false
   bind: "127.0.0.1"
@@ -84,12 +85,13 @@ On Velocity, set `control.enabled: true` and a `control.token` to accept daemon 
 
 | Command | Permission | Notes |
 |---------|------------|--------|
-| `/ae` / `/aec` | `aelion.aero.info` | Primary + alias |
-| `/ae help` | info | Usage (proxy help includes create/backends) |
-| `/ae info` | info | Version, server-id, panel host (no tokens) |
-| `/ae reload` | `aelion.aero.admin` | Reload config (+ restart control API on Velocity) |
-| `/ae ping` | info | Hit panel health/info |
-| `/ae servers list [--names]` | info | Panel fleet for same owner |
+| `/ae` / `/aec` | `aelion.aero.info` | Proxy primary + alias (Velocity/Bungee) |
+| `/aes` | `aelion.aero.info` | Backend primary (Bukkit/Paper) |
+| `/ae help` or `/aes help` | info | Usage (proxy help includes create/backends) |
+| `/ae info` or `/aes info` | info | Version, server-id, panel host (no tokens) |
+| `/ae reload` or `/aes reload` | `aelion.aero.admin` | Reload config (+ restart control API on Velocity) |
+| `/ae ping` or `/aes ping` | info | Hit panel health/info |
+| `/ae servers list [--names]` or `/aes …` | info | Panel fleet for same owner |
 | `/ae backends` | info | Live proxy backends (Velocity/Bungee only) |
 | `/ae create-server …` | `aelion.aero.create` | Proxy only; `template=` XOR `software=`+`version=` |
 

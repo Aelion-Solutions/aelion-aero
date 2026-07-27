@@ -14,12 +14,24 @@ public final class AeroConfig {
     private final String panelUrl;
     private final String serverId;
     private final String token;
+    private final boolean panelInsecureSsl;
     private final ControlConfig control;
 
     public AeroConfig(String panelUrl, String serverId, String token, ControlConfig control) {
+        this(panelUrl, serverId, token, false, control);
+    }
+
+    public AeroConfig(
+            String panelUrl,
+            String serverId,
+            String token,
+            boolean panelInsecureSsl,
+            ControlConfig control
+    ) {
         this.panelUrl = panelUrl == null ? "" : panelUrl.trim();
         this.serverId = serverId == null ? "" : serverId.trim();
         this.token = token == null ? "" : token.trim();
+        this.panelInsecureSsl = panelInsecureSsl;
         this.control = control == null ? ControlConfig.disabled() : control;
     }
 
@@ -33,6 +45,13 @@ public final class AeroConfig {
 
     public String token() {
         return token;
+    }
+
+    /**
+     * When true, panel HTTPS skips certificate and hostname verification (local/dev only).
+     */
+    public boolean panelInsecureSsl() {
+        return panelInsecureSsl;
     }
 
     public ControlConfig control() {
@@ -62,21 +81,32 @@ public final class AeroConfig {
     @SuppressWarnings("unchecked")
     public static AeroConfig fromMap(Map<String, Object> root) {
         if (root == null) {
-            return new AeroConfig("", "", "", ControlConfig.disabled());
+            return new AeroConfig("", "", "", false, ControlConfig.disabled());
         }
         String panelUrl = stringVal(root.get("panel-url"));
         String serverId = stringVal(root.get("server-id"));
         String token = stringVal(root.get("token"));
+        boolean panelInsecureSsl = boolVal(root.get("panel-insecure-ssl"), false);
         Object controlObj = root.get("control");
         ControlConfig control = ControlConfig.disabled();
         if (controlObj instanceof Map) {
             control = ControlConfig.fromMap((Map<String, Object>) controlObj);
         }
-        return new AeroConfig(panelUrl, serverId, token, control);
+        return new AeroConfig(panelUrl, serverId, token, panelInsecureSsl, control);
     }
 
     private static String stringVal(Object value) {
         return value == null ? "" : Objects.toString(value, "").trim();
+    }
+
+    private static boolean boolVal(Object value, boolean defaultValue) {
+        if (value instanceof Boolean) {
+            return (Boolean) value;
+        }
+        if (value == null) {
+            return defaultValue;
+        }
+        return Boolean.parseBoolean(Objects.toString(value));
     }
 
     public static final class ControlConfig {

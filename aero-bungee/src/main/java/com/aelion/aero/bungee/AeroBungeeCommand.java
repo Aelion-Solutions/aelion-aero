@@ -16,7 +16,7 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
     private final AeroBungeePlugin plugin;
 
     AeroBungeeCommand(AeroBungeePlugin plugin) {
-        super(AeroConstants.COMMAND_PRIMARY, Permissions.INFO, AeroConstants.COMMAND_ALIAS);
+        super(AeroConstants.COMMAND_PROXY_PRIMARY, Permissions.INFO, AeroConstants.COMMAND_PROXY_ALIAS);
         this.plugin = plugin;
     }
 

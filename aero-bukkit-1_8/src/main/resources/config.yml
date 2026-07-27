@@ -1,7 +1,9 @@
-# Aelion Aero — injected by Aelion Cloud at provision time (later).
+# Aelion Aero - injected by Aelion Cloud at provision time (later).
 panel-url: ""
 server-id: ""
 token: ""
+# DEV ONLY: skip TLS cert/hostname checks for panel HTTPS (self-signed / mkcert).
+panel-insecure-ssl: false
 
 control:
   enabled: false

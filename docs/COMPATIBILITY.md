@@ -18,11 +18,11 @@ Product version (e.g. `0.2.0`) is independent of the Minecraft/proxy API band.
 All backend bands include:
 
 - Config inject / reload
-- `/ae` core commands (`help`, `info`, `reload`, `ping`, `servers list`)
+- `/aes` core commands (`help`, `info`, `reload`, `ping`, `servers list`)
 - `AeroFleetService` via Bukkit `ServicesManager`
 - BungeeCord `Connect` plugin messaging
 
-`aero-paper-1_21` additionally registers `/ae` via Paper Brigadier lifecycle events.
+`aero-paper-1_21` and `aero-paper-26` additionally register `/aes` via Paper Brigadier lifecycle events.
 
 **Deprecated:** the old release asset name `aero-paper-<version>.jar` is replaced by `aero-paper-1_21-<version>.jar`.
 

@@ -7,9 +7,18 @@ import com.aelion.aero.common.util.Strings;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSocketFactory;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
@@ -34,21 +43,54 @@ public final class HttpPanelClient implements PanelClient {
     private final OkHttpClient httpClient;
 
     public HttpPanelClient(AeroConfig config) {
-        this(config, defaultClient());
+        this(config, null);
     }
 
     public HttpPanelClient(AeroConfig config, OkHttpClient httpClient) {
         this.config = config;
-        this.httpClient = httpClient == null ? defaultClient() : httpClient;
+        this.httpClient = httpClient == null
+                ? clientFor(config != null && config.panelInsecureSsl())
+                : httpClient;
     }
 
-    private static OkHttpClient defaultClient() {
-        return new OkHttpClient.Builder()
+    private static OkHttpClient clientFor(boolean insecureSsl) {
+        OkHttpClient.Builder builder = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(15, TimeUnit.SECONDS)
                 .writeTimeout(15, TimeUnit.SECONDS)
-                .callTimeout(20, TimeUnit.SECONDS)
-                .build();
+                .callTimeout(20, TimeUnit.SECONDS);
+        if (insecureSsl) {
+            applyInsecureSsl(builder);
+        }
+        return builder.build();
+    }
+
+    private static void applyInsecureSsl(OkHttpClient.Builder builder) {
+        try {
+            X509TrustManager trustAll = new X509TrustManager() {
+                @Override
+                public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                }
+
+                @Override
+                public X509Certificate[] getAcceptedIssuers() {
+                    return new X509Certificate[0];
+                }
+            };
+            TrustManager[] trustManagers = new TrustManager[] {trustAll};
+            SSLContext sslContext = SSLContext.getInstance("TLS");
+            sslContext.init(null, trustManagers, new SecureRandom());
+            SSLSocketFactory socketFactory = sslContext.getSocketFactory();
+            HostnameVerifier allowAll = (hostname, session) -> true;
+            builder.sslSocketFactory(socketFactory, trustAll);
+            builder.hostnameVerifier(allowAll);
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            throw new IllegalStateException("Failed to enable panel-insecure-ssl", e);
+        }
     }
 
     @Override

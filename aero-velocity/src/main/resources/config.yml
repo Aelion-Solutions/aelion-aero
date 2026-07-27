@@ -2,6 +2,8 @@
 panel-url: ""
 server-id: ""
 token: ""
+# DEV ONLY: skip TLS cert/hostname checks for panel HTTPS (self-signed / mkcert).
+panel-insecure-ssl: false
 
 # Daemon localhost bridge for live proxy backend sync.
 control:

@@ -6,11 +6,10 @@ description: Connects this Bukkit/Spigot server to Aelion Cloud (1.8-1.12)
 website: https://github.com/Aelion-Solutions/aelion-aero
 
 commands:
-  ae:
-    description: Aelion Aero admin commands
-    aliases: [aec]
+  aes:
+    description: Aelion Aero server commands
     permission: aelion.aero.info
-    usage: /ae <help|info|reload|ping|servers>
+    usage: /aes <help|info|reload|ping|servers>
 
 permissions:
   aelion.aero.info:

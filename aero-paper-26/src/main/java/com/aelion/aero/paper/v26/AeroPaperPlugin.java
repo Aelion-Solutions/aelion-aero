@@ -52,7 +52,7 @@ public final class AeroPaperPlugin extends JavaPlugin {
     private void registerCommands() {
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
-            LiteralCommandNode<CommandSourceStack> root = Commands.literal(AeroConstants.COMMAND_PRIMARY)
+            LiteralCommandNode<CommandSourceStack> root = Commands.literal(AeroConstants.COMMAND_BACKEND_PRIMARY)
                     .requires(stack -> stack.getSender().hasPermission(Permissions.INFO)
                             || stack.getSender().hasPermission(Permissions.ADMIN))
                     .executes(ctx -> {
@@ -91,17 +91,24 @@ public final class AeroPaperPlugin extends JavaPlugin {
                                 dispatch(ctx.getSource().getSender(), new String[] {"servers"});
                                 return Command.SINGLE_SUCCESS;
                             }))
-                    .then(Commands.argument("subcommand", StringArgumentType.word()).executes(ctx -> {
-                        String sub = StringArgumentType.getString(ctx, "subcommand");
-                        dispatch(ctx.getSource().getSender(), new String[] {sub});
-                        return Command.SINGLE_SUCCESS;
-                    }))
+                    // Fallback: forward unknown / proxy-only verbs to AeroCommandService for styled
+                    // messages (parity with classic /aes). Empty suggests so tab only shows literals.
+                    .then(Commands.argument("args", StringArgumentType.greedyString())
+                            .suggests((ctx, builder) -> builder.buildFuture())
+                            .executes(ctx -> {
+                                String raw = StringArgumentType.getString(ctx, "args").trim();
+                                String[] args = raw.isEmpty()
+                                        ? new String[0]
+                                        : raw.split("\\s+");
+                                dispatch(ctx.getSource().getSender(), args);
+                                return Command.SINGLE_SUCCESS;
+                            }))
                     .build();
 
             commands.register(
                     root,
-                    "Aelion Aero admin commands",
-                    List.of(AeroConstants.COMMAND_ALIAS));
+                    "Aelion Aero server commands",
+                    List.of());
         });
     }
 
