@@ -12,7 +12,8 @@ Product version (e.g. `0.2.0`) is independent of the Minecraft/proxy API band.
 | `aero-bukkit-1_8` | 1.8 – 1.12.2 | Spigot 1.8.8 | Java 8 |
 | `aero-bukkit-1_13` | 1.13 – 1.16.5 | Spigot 1.13.2 | Java 8 |
 | `aero-paper-1_17` | 1.17 – 1.20.x | Paper 1.17.1 | Java 16 |
-| `aero-paper-1_21` | 1.21+ | Paper 1.21.x | Java 21 |
+| `aero-paper-1_21` | 1.21.x | Paper 1.21.x | Java 21 |
+| `aero-paper-26` | 26.1 – 26.x | Paper 26.x | Java 25 |
 
 All backend bands include:
 

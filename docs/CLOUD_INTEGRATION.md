@@ -66,7 +66,8 @@ Java client: `com.aelion.aero.common.api.HttpPanelClient`.
 ### Fleet bridge for sibling plugins
 
 Every **backend** Aero band registers `com.aelion.aero.api.AeroFleetService` on Bukkit
-ServicesManager (`aero-bukkit-1_8`, `aero-bukkit-1_13`, `aero-paper-1_17`, `aero-paper-1_21`).
+ServicesManager (`aero-bukkit-1_8`, `aero-bukkit-1_13`, `aero-paper-1_17`, `aero-paper-1_21`,
+`aero-paper-26`).
 First-party plugins (Signs, later NPCs) depend on `AelionAero` and look up that service — they do
 **not** carry their own panel tokens.
 
@@ -147,7 +148,7 @@ See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
    - Map instance `software` + MC/proxy version → unique matrix row
    - Install `<artifact>-<productVer>.jar` into instance `plugins/`
    - No match → fail provision (do not guess)
-4. Backend bands: `aero-bukkit-1_8`, `aero-bukkit-1_13`, `aero-paper-1_17`, `aero-paper-1_21`
+4. Backend bands: `aero-bukkit-1_8`, `aero-bukkit-1_13`, `aero-paper-1_17`, `aero-paper-1_21`, `aero-paper-26`
 5. Proxies: `aero-velocity`, `aero-bungee`
 
 **Note:** `aero-paper-<ver>.jar` is deprecated; use `aero-paper-1_21-<ver>.jar`.

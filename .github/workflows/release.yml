@@ -67,6 +67,7 @@ jobs:
             aero-bukkit-1_13/build/libs/ \
             aero-paper-1_17/build/libs/ \
             aero-paper-1_21/build/libs/ \
+            aero-paper-26/build/libs/ \
             aero-velocity/build/libs/ \
             aero-bungee/build/libs/ \
             aero-api/build/libs/ || true
@@ -83,6 +84,7 @@ jobs:
             aero-bukkit-1_13/build/libs/aero-bukkit-1_13-${{ steps.version.outputs.version }}.jar
             aero-paper-1_17/build/libs/aero-paper-1_17-${{ steps.version.outputs.version }}.jar
             aero-paper-1_21/build/libs/aero-paper-1_21-${{ steps.version.outputs.version }}.jar
+            aero-paper-26/build/libs/aero-paper-26-${{ steps.version.outputs.version }}.jar
             aero-velocity/build/libs/aero-velocity-${{ steps.version.outputs.version }}.jar
             aero-bungee/build/libs/aero-bungee-${{ steps.version.outputs.version }}.jar
         env:

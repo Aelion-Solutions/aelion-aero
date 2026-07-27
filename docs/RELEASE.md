@@ -31,6 +31,7 @@ That makes the release-please PR the approval gate.
    - `aero-bukkit-1_13-X.Y.Z.jar`
    - `aero-paper-1_17-X.Y.Z.jar`
    - `aero-paper-1_21-X.Y.Z.jar`
+   - `aero-paper-26-X.Y.Z.jar`
    - `aero-velocity-X.Y.Z.jar`
    - `aero-bungee-X.Y.Z.jar`
 

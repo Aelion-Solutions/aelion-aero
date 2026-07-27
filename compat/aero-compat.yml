@@ -17,6 +17,10 @@ backends:
     software: [paper, purpur]
     mcMin: "1.21"
     mcMax: "1.21.99"
+  - artifact: aero-paper-26
+    software: [paper, purpur]
+    mcMin: "26.1"
+    mcMax: "26.99"
 proxies:
   - artifact: aero-velocity
     software: [velocity]
