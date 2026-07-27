@@ -22,7 +22,7 @@ That makes the release-please PR the approval gate.
 
 1. Merge work to `main` with [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, …).
 2. The **Release** workflow runs release-please.
-3. If there are releasable commits since the last tag, it opens or updates a PR titled like `chore(main): release 0.2.0`.
+3. If there are releasable commits since the last tag, it opens or updates a PR titled like `chore(main): release 0.6.1`.
 4. Review the PR (changelog + version bumps in `gradle.properties`, `AeroVersion.java`, manifest).
 5. **Approve and merge** the release PR.
 6. Release-please creates the `vX.Y.Z` tag and GitHub Release.
@@ -35,6 +35,18 @@ That makes the release-please PR the approval gate.
    - `aero-paper-26-X.Y.Z.jar`
    - `aero-velocity-X.Y.Z.jar`
    - `aero-bungee-X.Y.Z.jar`
+
+### Version bumps (pre-1.0)
+
+Config in `.github/release-please-config.json` uses pre-major softening:
+
+| Commit | Bump (0.x) | Bump (1.0+) |
+|--------|------------|-------------|
+| `fix:` | patch (`0.6.0` → `0.6.1`) | patch |
+| `feat:` | patch (`0.6.0` → `0.6.1`) | minor |
+| `BREAKING CHANGE` / `feat!:` | minor (`0.6.0` → `0.7.0`) | major |
+
+That stops at **1.0.0**: after you ship `1.0.0`, `feat:` goes back to minor and breakings go to major. Force a version anytime with a commit footer `Release-As: X.Y.Z`.
 
 ## Manual re-run
 
