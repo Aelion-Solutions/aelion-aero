@@ -2,9 +2,11 @@ plugins {
     java
 }
 
+fun sanitizedVersion(raw: String): String = raw.substringBefore('#').trim()
+
 allprojects {
     group = providers.gradleProperty("group").get()
-    version = providers.gradleProperty("version").get()
+    version = sanitizedVersion(providers.gradleProperty("version").get())
     description = providers.gradleProperty("description").orNull
 }
 

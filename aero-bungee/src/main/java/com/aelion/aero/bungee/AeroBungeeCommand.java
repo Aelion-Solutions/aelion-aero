@@ -2,14 +2,10 @@ package com.aelion.aero.bungee;
 
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.Permissions;
-import com.aelion.aero.common.api.HttpPanelClient;
-import com.aelion.aero.common.api.PanelApiException;
-import com.aelion.aero.common.api.PanelHealthResponse;
-import com.aelion.aero.common.api.PanelNotConfiguredException;
-import com.aelion.aero.common.api.ServerInfoResponse;
-import com.aelion.aero.common.command.AeroCommandMessages;
+import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
-import java.util.Locale;
+import com.aelion.aero.common.control.BackendEntry;
+import java.util.List;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.TextComponent;
 import net.md_5.bungee.api.plugin.Command;
@@ -26,77 +22,70 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        String sub = args.length == 0 ? "help" : args[0].toLowerCase(Locale.ROOT);
-        switch (sub) {
-            case "help" -> sender.sendMessage(TextComponent.fromLegacy(AeroCommandMessages.help()));
-            case "info" -> {
-                if (!sender.hasPermission(Permissions.INFO)) {
-                    sender.sendMessage(TextComponent.fromLegacy("No permission."));
-                    return;
-                }
-                sender.sendMessage(TextComponent.fromLegacy(AeroCommandMessages.info(plugin.aeroConfig())));
-            }
-            case "reload" -> {
-                if (!sender.hasPermission(Permissions.ADMIN)) {
-                    sender.sendMessage(TextComponent.fromLegacy("No permission."));
-                    return;
-                }
-                try {
-                    plugin.reloadAeroConfig();
-                    sender.sendMessage(TextComponent.fromLegacy("Aelion Aero config reloaded."));
-                } catch (Exception e) {
-                    sender.sendMessage(TextComponent.fromLegacy("Reload failed: " + e.getMessage()));
-                }
-            }
-            case "ping" -> {
-                if (!sender.hasPermission(Permissions.INFO)) {
-                    sender.sendMessage(TextComponent.fromLegacy("No permission."));
-                    return;
-                }
-                ping(sender);
-            }
-            default -> sender.sendMessage(TextComponent.fromLegacy("Unknown subcommand. Try /ae help"));
-        }
-    }
-
-    private void ping(CommandSender sender) {
-        AeroConfig config = plugin.aeroConfig();
-        if (!config.isPanelConfigured()) {
-            sender.sendMessage(TextComponent.fromLegacy(
-                    "Panel not configured (set panel-url, server-id, token)."));
-            return;
-        }
-        HttpPanelClient client = new HttpPanelClient(config);
-        try {
-            PanelHealthResponse health = client.ping();
-            sender.sendMessage(TextComponent.fromLegacy("Panel health ok=" + health.isOk()
-                    + (health.getVersion() == null ? "" : " version=" + health.getVersion())));
-        } catch (PanelNotConfiguredException e) {
-            sender.sendMessage(TextComponent.fromLegacy("Panel not configured."));
-        } catch (PanelApiException e) {
-            try {
-                ServerInfoResponse info = client.getServerInfo();
-                sender.sendMessage(TextComponent.fromLegacy("Panel reachable. server="
-                        + nullToDash(info.getName()) + " status=" + nullToDash(info.getStatus())));
-            } catch (PanelApiException nested) {
-                sender.sendMessage(TextComponent.fromLegacy(
-                        "Panel error HTTP " + nested.statusCode() + " (routes may not be live yet)."));
-            }
-        }
-    }
-
-    private static String nullToDash(String value) {
-        return value == null || value.isBlank() ? "-" : value;
+        AeroCommandService.execute(args, new BungeePlatform(sender));
     }
 
     @Override
     public Iterable<String> onTabComplete(CommandSender sender, String[] args) {
-        if (args.length <= 1) {
-            String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            return java.util.List.of("help", "info", "reload", "ping").stream()
-                    .filter(s -> s.startsWith(prefix))
-                    .toList();
+        return AeroCommandService.tabComplete(args, true);
+    }
+
+    private final class BungeePlatform implements AeroCommandService.Platform {
+        private final CommandSender sender;
+
+        private BungeePlatform(CommandSender sender) {
+            this.sender = sender;
         }
-        return java.util.List.of();
+
+        @Override
+        public void send(String legacyLine) {
+            sender.sendMessage(TextComponent.fromLegacy(legacyLine));
+        }
+
+        @Override
+        public void sendAll(List<String> legacyLines) {
+            for (String line : legacyLines) {
+                send(line);
+            }
+        }
+
+        @Override
+        public boolean hasPermission(String permission) {
+            return sender.hasPermission(permission);
+        }
+
+        @Override
+        public void runAsync(Runnable task) {
+            plugin.getProxy().getScheduler().runAsync(plugin, task);
+        }
+
+        @Override
+        public void runSync(Runnable task) {
+            task.run();
+        }
+
+        @Override
+        public AeroConfig config() {
+            return plugin.aeroConfig();
+        }
+
+        @Override
+        public void reloadConfig() throws Exception {
+            plugin.reloadAeroConfig();
+        }
+
+        @Override
+        public boolean isProxy() {
+            return true;
+        }
+
+        @Override
+        public List<BackendEntry> backendsSnapshot() {
+            BackendRegistryService registry = plugin.registryService();
+            if (registry == null) {
+                return List.of();
+            }
+            return registry.snapshot().validBackends();
+        }
     }
 }

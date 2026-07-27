@@ -18,6 +18,8 @@ public final class CreateServerRequest {
     private String nodeId;
     private String groupId;
     private String templateId;
+    private String template;
+    private String role;
     private String customJarUrl;
     private Integer memory;
     private Integer disk;
@@ -87,6 +89,22 @@ public final class CreateServerRequest {
 
     public void setTemplateId(String templateId) {
         this.templateId = templateId;
+    }
+
+    public String getTemplate() {
+        return template;
+    }
+
+    public void setTemplate(String template) {
+        this.template = template;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     public String getCustomJarUrl() {

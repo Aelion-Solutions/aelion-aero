@@ -3,17 +3,27 @@ package com.aelion.aero.common.api;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.json.AeroJson;
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import java.io.IOException;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * {@link PanelClient} using {@link HttpClient} and Bearer server token.
  */
 public final class HttpPanelClient implements PanelClient {
+
+    private static final TypeReference<List<ServerInfoResponse>> SERVER_LIST_TYPE =
+            new TypeReference<>() {
+            };
+    private static final TypeReference<List<GroupInfoResponse>> GROUP_LIST_TYPE =
+            new TypeReference<>() {
+            };
 
     private final AeroConfig config;
     private final HttpClient httpClient;
@@ -39,6 +49,20 @@ public final class HttpPanelClient implements PanelClient {
     public ServerInfoResponse getServerInfo() {
         requireConfigured();
         return get(PanelPaths.server(config.serverId()), ServerInfoResponse.class);
+    }
+
+    @Override
+    public List<ServerInfoResponse> listServers() {
+        requireConfigured();
+        HttpRequest request = baseRequest(PanelPaths.SERVERS).GET().build();
+        return sendList(request, SERVER_LIST_TYPE);
+    }
+
+    @Override
+    public List<GroupInfoResponse> listGroups() {
+        requireConfigured();
+        HttpRequest request = baseRequest(PanelPaths.GROUPS).GET().build();
+        return sendList(request, GROUP_LIST_TYPE);
     }
 
     @Override
@@ -104,6 +128,29 @@ public final class HttpPanelClient implements PanelClient {
                 }
             }
             return AeroJson.mapper().readValue(body, type);
+        } catch (PanelApiException e) {
+            throw e;
+        } catch (IOException | InterruptedException e) {
+            if (e instanceof InterruptedException) {
+                Thread.currentThread().interrupt();
+            }
+            throw new PanelApiException(0, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        }
+    }
+
+    private <T> List<T> sendList(HttpRequest request, TypeReference<List<T>> type) {
+        try {
+            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
+            int status = response.statusCode();
+            String body = response.body() == null ? "" : response.body();
+            if (status < 200 || status >= 300) {
+                throw new PanelApiException(status, body);
+            }
+            if (body.isBlank()) {
+                return Collections.emptyList();
+            }
+            List<T> list = AeroJson.mapper().readValue(body, type);
+            return list == null ? Collections.emptyList() : list;
         } catch (PanelApiException e) {
             throw e;
         } catch (IOException | InterruptedException e) {

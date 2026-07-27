@@ -47,6 +47,10 @@ public final class AeroBungeePlugin extends Plugin {
         return aeroConfig;
     }
 
+    BackendRegistryService registryService() {
+        return registryService;
+    }
+
     public void reloadAeroConfig() throws IOException {
         Path configPath = getDataFolder().toPath().resolve("config.yml");
         ensureDefaultConfig();

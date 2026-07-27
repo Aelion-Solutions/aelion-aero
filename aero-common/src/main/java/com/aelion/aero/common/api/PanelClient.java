@@ -9,6 +9,10 @@ public interface PanelClient {
 
     ServerInfoResponse getServerInfo() throws PanelNotConfiguredException, PanelApiException;
 
+    java.util.List<ServerInfoResponse> listServers() throws PanelNotConfiguredException, PanelApiException;
+
+    java.util.List<GroupInfoResponse> listGroups() throws PanelNotConfiguredException, PanelApiException;
+
     CreateServerResponse createServer(CreateServerRequest request)
             throws PanelNotConfiguredException, PanelApiException;
 

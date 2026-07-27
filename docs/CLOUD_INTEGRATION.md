@@ -1,69 +1,85 @@
 # Aelion Cloud ↔ Aero integration contract
 
-This document describes what **aelion-cloud** must add later. Aero implements the plugin side now; do not treat these panel routes as live until cloud ships them.
+Contract between **aelion-aero** (plugins) and **aelion-cloud** (panel + daemon).
+Keep this file aligned with cloud `docs/AELION_AERO.md` when behavior changes.
 
 ## Architecture
 
-| Concern | Path | Auth |
-|---------|------|------|
-| Admin / create / info | Plugin → panel HTTPS | `Authorization: Bearer <server-token>` from `config.yml` |
-| Hot backend sync | Panel → daemon RPC → localhost Aero Velocity | `X-Aero-Control-Token` + bind `127.0.0.1` only |
-| On-disk proxy config | Daemon keeps server maps empty | Live map is Aero memory only |
+| Concern | Path | Auth | Status |
+|---------|------|------|--------|
+| Health / server info | Plugin → panel HTTPS `/api/aero/v1` | `Authorization: Bearer <server-token>` | **Live in cloud** |
+| Fleet list / create (proxy) | Plugin → panel HTTPS | Same Bearer; create attaches proxy child | **Live in cloud** |
+| Hot backend sync | Panel → daemon RPC → localhost Aero | `X-Aero-Control-Token` + bind `127.0.0.1` | **Live** (Velocity + Bungee) |
+| On-disk proxy config | Daemon keeps server maps empty | Live map is Aero memory only | **Live** |
 
 ```text
 scale member RUNNING
   → panel syncProxyBackends
-  → daemon clears on-disk proxy server maps (no live names written)
+  → daemon keeps on-disk proxy server maps empty (no live names written)
   → daemon PUT http://127.0.0.1:<control.port>/v1/backends
   → Aero registers/unregisters servers in process memory
   → Aero routes new logins (Velocity PlayerChooseInitialServerEvent / Bungee ServerConnectEvent)
   → on deregister: move players to a remaining lobby/try, else disconnect
-  → on success: clear proxyConfigPendingRestart
-  → on failure: keep restart-pending (today’s behavior)
 ```
 
 ## Config injection (provision / start)
 
-Write into Paper `plugins/AelionAero/config.yml` or Velocity plugin data `config.yml`:
+Write into:
+
+| Software | Plugin `config.yml` path |
+|----------|--------------------------|
+| Paper / Spigot | `plugins/AelionAero/config.yml` |
+| Velocity | `plugins/aelionaero/config.yml` |
+| BungeeCord / Waterfall | `plugins/AelionAero/config.yml` |
+
+Plus daemon sidecar `.aelion-aero.ae` (JSON) for hot-reload notify.
 
 ```yaml
 panel-url: "https://panel.example.com"
 server-id: "cms_..."
 token: "<server-scoped-token>"
 control:
-  enabled: true          # Velocity proxies only
+  enabled: true          # true for Velocity/Bungee; false for Paper
   bind: "127.0.0.1"
-  port: 25580
+  port: 25580            # cloud should allocate unique ports per proxy (follow-up)
   token: "<control-token>"
 ```
 
 - **Server token**: first-party credential scoped to one server id (not a user API key).
-- **Control token**: known to daemon + Velocity Aero only; never expose to players or panel public APIs.
+- **Control token**: known to daemon + proxy Aero only; never expose to players or panel public APIs.
 
-## Panel routes to add
+## Panel routes
 
-Prefix: `/api/aero/v1` (or proxy to existing `/api/servers` / `/api/groups` with Aero auth).
+Prefix: `/api/aero/v1` (Aero contract envelope — not the standard panel `{ success, data }` shape).
 
-| Method | Path | Purpose |
-|--------|------|---------|
-| `GET` | `/api/aero/v1/health` | `/ae ping` |
-| `GET` | `/api/aero/v1/servers/:id` | `/ae info` / ping fallback |
-| `POST` | `/api/aero/v1/servers` | body = Aero `CreateServerRequest` |
-| `POST` | `/api/aero/v1/groups` | body = Aero `CreateGroupRequest` |
+| Method | Path | Purpose | Status |
+|--------|------|---------|--------|
+| `GET` | `/api/aero/v1/health` | `/ae ping` | Live |
+| `GET` | `/api/aero/v1/servers` | Same-owner fleet (+ players, group, joinable, proxyName) | Live in cloud |
+| `GET` | `/api/aero/v1/servers/:id` | ping fallback (token must match `:id`) | Live |
+| `GET` | `/api/aero/v1/groups` | Same-owner groups + member snapshots (signs / NPCs) | Live in cloud |
+| `POST` | `/api/aero/v1/servers` | Proxy-only create: `template` XOR `software`+`version`; attaches to actor proxy | Live in cloud |
+| `POST` | `/api/aero/v1/groups` | body = Aero `CreateGroupRequest` | Live |
 
-Java client already posts to these paths (`com.aelion.aero.common.api.HttpPanelClient`).
+Java client: `com.aelion.aero.common.api.HttpPanelClient`.
 
-### Example: Java create server (plugin later)
+### Fleet bridge for sibling plugins
 
-```java
-CreateServerRequest req = new CreateServerRequest();
-req.setName("dev-1");
-req.setType("survival");
-req.setSoftware("paper");
-req.setMemory(2048);
+Paper Aero registers `com.aelion.aero.api.AeroFleetService` on Bukkit ServicesManager.
+First-party plugins (Signs, later NPCs) SoftDepend `AelionAero` and look up that service — they do
+**not** carry their own panel tokens.
 
-CreateServerResponse created = new HttpPanelClient(config).createServer(req);
-```
+- `listServers()` / `listGroups()` — cached panel poll (~2s TTL)
+- `connectPlayer(uuid, proxyServerName)` — BungeeCord plugin messaging `Connect` (Velocity legacy channel)
+
+Keep the `com.aelion.aero.api` FQCN in sync with copies under aelion-cloud-plugins.
+
+### Create-server body (proxy Aero token)
+
+- Required: `name`
+- XOR: `template` (template **name**) **or** both `software` and `version`
+- Defaults: `autoStart=true` when omitted; attach role `backend` (optional `role`: `backend`\|`lobby`\|`try`)
+- Actor must be proxy software; new server is attached as a proxy child then backends sync
 
 ## Proxy control API (implemented in Aero)
 
@@ -74,10 +90,6 @@ On deregister, players are moved to a remaining lobby/try, or disconnected if no
 - `GET /v1/health` — `{ "ok": true, "plugin": "AelionAero", "version": "..." }`
 - `GET /v1/backends` — last applied registry
 - `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }`
-  - Registers/updates/removes live servers
-  - Does **not** write backends into `velocity.toml` / Bungee `config.yml`
-  - Sets initial server on login from lobby → try → any backend
-  - Evacuates players off removed backends to a lobby/try (or disconnects if none)
 - Header: `X-Aero-Control-Token: <control.token>`
 - Bind: loopback only
 
@@ -95,41 +107,19 @@ curl -s -X PUT http://127.0.0.1:25580/v1/backends \
   -d '{"backends":[{"name":"lobby","address":"127.0.0.1:25565","role":"lobby"}]}'
 ```
 
-## Daemon snippet (add later in aelion-cloud)
+## Daemon notify (live in aelion-cloud)
 
-After successful `ApplyBackendRegistry` in `dispatch_proxy.go`, notify Aero when the proxy process is running:
+Cloud daemon reads control port/token from `.aelion-aero.ae` and `PUT`s backends
+to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running.
+See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
 
-```go
-func notifyAeroBackends(controlPort int, controlToken string, body []byte) error {
-    url := fmt.Sprintf("http://127.0.0.1:%d/v1/backends", controlPort)
-    req, err := http.NewRequest(http.MethodPut, url, bytes.NewReader(body))
-    if err != nil {
-        return err
-    }
-    req.Header.Set("Content-Type", "application/json")
-    req.Header.Set("X-Aero-Control-Token", controlToken)
-    client := &http.Client{Timeout: 3 * time.Second}
-    resp, err := client.Do(req)
-    if err != nil {
-        return err // fall back: proxyConfigPendingRestart
-    }
-    defer resp.Body.Close()
-    if resp.StatusCode < 200 || resp.StatusCode >= 300 {
-        return fmt.Errorf("aero control HTTP %d", resp.StatusCode)
-    }
-    return nil
-}
-```
+## Plugin JAR delivery (cloud follow-up)
 
-Read `control.port` / `control.token` from the proxy’s Aero `config.yml` (or mirror them in daemon metadata at provision time).
+1. Panel fetches GitHub Release assets from `aelion-aero` (private → `AERO_GITHUB_TOKEN` on **panel only**).
+2. Cache under e.g. `data/aero-plugins/<version>/`.
+3. Install `aero-paper` / `aero-velocity` / `aero-bungee` into instance `plugins/` on provision.
 
-On success, panel should clear `proxyConfigPendingRestart`. On failure / connection refused, keep today’s restart banner.
-
-## Plugin JAR delivery (later)
-
-1. Panel fetches GitHub Release assets from `aelion-aero` (private → `AERO_GITHUB_TOKEN` / PAT on **panel only**).
-2. Cache under e.g. `backend/data/aero-plugins/<version>/`.
-3. Distribute to daemons (template-like sync) into `plugins/`.
+Tracked as [aelion-cloud#328](https://github.com/Aelion-Solutions/aelion-cloud/issues/328).
 
 ## REST sync / TypeSpec (later)
 
@@ -141,6 +131,6 @@ On success, panel should clear `proxyConfigPendingRestart`. On failure / connect
 
 | Node | Default | Use |
 |------|---------|-----|
-| `aelion.aero.info` | true | help/info/ping |
+| `aelion.aero.info` | true | help/info/ping/servers list/backends |
 | `aelion.aero.admin` | op | reload |
-| `aelion.aero.create` | op | reserved for future `/ae create-*` |
+| `aelion.aero.create` | op | `/ae create-server` (proxy only) |
