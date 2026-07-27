@@ -53,15 +53,15 @@ public final class AeroVelocityPlugin {
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         registryService = new BackendRegistryService(proxy, logger);
+        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
+        notifyBridge = new VelocityFleetNotifyBridge(this, proxy, notifyService);
+        notifyBridge.start();
         controlHttpServer = new ControlHttpServer(logger, proxy, this, registryService);
         try {
             reloadAeroConfig();
         } catch (Exception e) {
             logger.error("Failed to load Aero config", e);
         }
-        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
-        notifyBridge = new VelocityFleetNotifyBridge(this, proxy, notifyService);
-        notifyBridge.start();
         proxy.getEventManager().register(this, new BackendPlayerRouter(registryService, logger));
         AeroVelocityCommand.register(this);
         logger.info("{} enabled on {}", AeroConstants.NAME, proxy.getVersion().getName());

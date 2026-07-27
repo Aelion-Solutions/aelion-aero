@@ -22,15 +22,15 @@ public final class AeroBungeePlugin extends Plugin {
     @Override
     public void onEnable() {
         registryService = new BackendRegistryService(getProxy(), getLogger());
+        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
+        notifyBridge = new BungeeFleetNotifyBridge(this, notifyService);
+        notifyBridge.start();
         controlHttpServer = new ControlHttpServer(getLogger(), getProxy(), this, registryService);
         try {
             reloadAeroConfig();
         } catch (Exception e) {
             getLogger().severe("Failed to load Aero config: " + e.getMessage());
         }
-        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
-        notifyBridge = new BungeeFleetNotifyBridge(this, notifyService);
-        notifyBridge.start();
         getProxy().getPluginManager().registerListener(this, new BackendPlayerRouter(registryService, getLogger()));
         getProxy().getPluginManager().registerCommand(this, new AeroBungeeCommand(this));
         getLogger().info(AeroConstants.NAME + " " + AeroVersion.VERSION + " enabled on BungeeCord/Waterfall");
