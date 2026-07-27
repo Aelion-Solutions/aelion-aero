@@ -1,5 +1,23 @@
 # Changelog
 
+## [0.6.1](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.0...v0.6.1) (2026-07-27)
+
+
+### Features
+
+* add control API graceful shutdown for daemon stop ([606ccb3](https://github.com/Aelion-Solutions/aelion-aero/commit/606ccb35e7bc57a9dbc3345423fd6aa304a23260))
+* add control API graceful shutdown for daemon stop ([6cb9b60](https://github.com/Aelion-Solutions/aelion-aero/commit/6cb9b605e1ed37de4d62f96ddb7f992413da7ff3))
+* aero.ae identity split + kick/transfer player utils ([43ea759](https://github.com/Aelion-Solutions/aelion-aero/commit/43ea7591acbda798cf7a53ce40eabc4e476a8a72))
+* **control:** add GET /v1/players for online player list ([ec6d4b4](https://github.com/Aelion-Solutions/aelion-aero/commit/ec6d4b4c8c43f4c6babcd7fac419143b1818d21f))
+* **control:** add GET /v1/players for online player list ([5adb74f](https://github.com/Aelion-Solutions/aelion-aero/commit/5adb74fd638842b0a6b72f6c1d87460d2bdd8ca7))
+* split identity into aero.ae and add kick/transfer utils ([6ceb591](https://github.com/Aelion-Solutions/aelion-aero/commit/6ceb591d400d951e5cc8cc03fa19ebadaafbaabd))
+
+
+### Bug Fixes
+
+* **bukkit:** fail loudly when required control API cannot bind ([dd429d3](https://github.com/Aelion-Solutions/aelion-aero/commit/dd429d351a97494e731eb8b587fbc6d4a50894f4))
+* **bukkit:** reset shutdownRequested when control server restarts ([a6e9386](https://github.com/Aelion-Solutions/aelion-aero/commit/a6e93862445fefb865400252b6c1bd9402c452e3))
+
 ## [0.6.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.5.0...v0.6.0) (2026-07-27)
 
 
