@@ -27,6 +27,7 @@ That makes the release-please PR the approval gate.
 5. **Approve and merge** the release PR.
 6. Release-please creates the `vX.Y.Z` tag and GitHub Release.
 7. The same workflow builds and uploads:
+   - `aero-compat.yml`
    - `aero-bukkit-1_8-X.Y.Z.jar`
    - `aero-bukkit-1_13-X.Y.Z.jar`
    - `aero-paper-1_17-X.Y.Z.jar`
