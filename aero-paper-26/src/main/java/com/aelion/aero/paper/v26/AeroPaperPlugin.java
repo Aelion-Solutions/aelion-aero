@@ -7,6 +7,7 @@ import com.aelion.aero.common.Permissions;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.mojang.brigadier.Command;
+import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -88,6 +89,18 @@ public final class AeroPaperPlugin extends JavaPlugin {
                                     }))
                             .executes(ctx -> {
                                 dispatch(ctx.getSource().getSender(), new String[] {"servers"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    // Fallback: forward unknown / proxy-only verbs to AeroCommandService for styled
+                    // messages (parity with classic /aes). Empty suggests so tab only shows literals.
+                    .then(Commands.argument("args", StringArgumentType.greedyString())
+                            .suggests((ctx, builder) -> builder.buildFuture())
+                            .executes(ctx -> {
+                                String raw = StringArgumentType.getString(ctx, "args").trim();
+                                String[] args = raw.isEmpty()
+                                        ? new String[0]
+                                        : raw.split("\\s+");
+                                dispatch(ctx.getSource().getSender(), args);
                                 return Command.SINGLE_SUCCESS;
                             }))
                     .build();
