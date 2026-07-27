@@ -1,51 +1,46 @@
-package com.aelion.aero.velocity;
+package com.aelion.aero.bukkit;
 
 import com.aelion.aero.common.ControlApi;
 import com.aelion.aero.common.config.AeroConfig;
-import com.aelion.aero.common.control.BackendRegistry;
 import com.aelion.aero.common.control.ControlHealthResponse;
 import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.json.AeroJson;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
-import com.velocitypowered.api.proxy.ProxyServer;
 import java.io.IOException;
-import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
-import net.kyori.adventure.text.Component;
-import org.slf4j.Logger;
+import java.util.logging.Logger;
+import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
+import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Loopback-only HTTP control plane for the daemon.
+ * Loopback-only HTTP control plane for the daemon (backends).
+ * Exposes health + graceful shutdown; backends do not host the proxy backends registry.
  */
-final class ControlHttpServer {
+final class BukkitControlHttpServer {
 
+    private static final String KICK_MESSAGE = ChatColor.YELLOW + "Server is shutting down.";
+
+    private final JavaPlugin plugin;
     private final Logger logger;
-    private final ProxyServer proxy;
-    private final Object plugin;
-    private final BackendRegistryService registryService;
     private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
     private HttpServer server;
 
-    ControlHttpServer(
-            Logger logger,
-            ProxyServer proxy,
-            Object plugin,
-            BackendRegistryService registryService
-    ) {
-        this.logger = logger;
-        this.proxy = proxy;
+    BukkitControlHttpServer(JavaPlugin plugin) {
         this.plugin = plugin;
-        this.registryService = registryService;
+        this.logger = plugin.getLogger();
     }
 
     synchronized void start(AeroConfig.ControlConfig control) throws IOException {
         stop();
+        shutdownRequested.set(false);
         if (!control.enabled()) {
             return;
         }
@@ -71,29 +66,6 @@ final class ControlHttpServer {
             sendJson(exchange, 200, ControlHealthResponse.ok());
         });
 
-        server.createContext(ControlApi.BACKENDS_PATH, exchange -> {
-            if (!authorize(exchange, expectedToken)) {
-                return;
-            }
-            String method = exchange.getRequestMethod();
-            if ("GET".equalsIgnoreCase(method)) {
-                sendJson(exchange, 200, registryService.snapshot());
-                return;
-            }
-            if ("PUT".equalsIgnoreCase(method)) {
-                try (InputStream in = exchange.getRequestBody()) {
-                    BackendRegistry body = AeroJson.mapper().readValue(in, BackendRegistry.class);
-                    BackendRegistryService.ApplyResult result = registryService.apply(body);
-                    send(exchange, 200, AeroJson.mapper().writeValueAsString(result));
-                } catch (Exception e) {
-                    logger.warn("Failed to apply backends: {}", e.getMessage());
-                    send(exchange, 400, "{\"error\":\"invalid backends payload\"}");
-                }
-                return;
-            }
-            send(exchange, 405, "{\"error\":\"method not allowed\"}");
-        });
-
         server.createContext(ControlApi.SHUTDOWN_PATH, exchange -> {
             if (!authorize(exchange, expectedToken)) {
                 return;
@@ -112,7 +84,7 @@ final class ControlHttpServer {
             return t;
         }));
         server.start();
-        logger.info("Aero control API listening on {}:{}", control.bind(), control.port());
+        logger.info("Aero control API listening on " + control.bind() + ":" + control.port());
     }
 
     synchronized void stop() {
@@ -127,12 +99,12 @@ final class ControlHttpServer {
             return;
         }
         logger.info("Control API requested graceful shutdown");
-        proxy.getScheduler().buildTask(plugin, () -> {
-            for (var player : proxy.getAllPlayers()) {
-                player.disconnect(Component.text("Server is shutting down."));
+        Bukkit.getScheduler().runTask(plugin, () -> {
+            for (Player player : Bukkit.getOnlinePlayers()) {
+                player.kickPlayer(KICK_MESSAGE);
             }
-            proxy.shutdown(Component.text("Aero control shutdown"));
-        }).schedule();
+            Bukkit.getServer().shutdown();
+        });
     }
 
     private boolean authorize(HttpExchange exchange, String expectedToken) throws IOException {
