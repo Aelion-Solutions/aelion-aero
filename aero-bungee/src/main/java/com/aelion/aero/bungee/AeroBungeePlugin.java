@@ -24,7 +24,7 @@ public final class AeroBungeePlugin extends Plugin {
     public void onEnable() {
         ensureDefaultConfig();
         registryService = new BackendRegistryService(getProxy(), getLogger());
-        controlHttpServer = new ControlHttpServer(getLogger(), registryService);
+        controlHttpServer = new ControlHttpServer(getLogger(), getProxy(), registryService);
         try {
             reloadAeroConfig();
         } catch (Exception e) {

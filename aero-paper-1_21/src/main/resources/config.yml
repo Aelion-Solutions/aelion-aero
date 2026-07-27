@@ -5,7 +5,7 @@ token: ""
 # DEV ONLY: skip TLS cert/hostname checks for panel HTTPS (self-signed / mkcert).
 panel-insecure-ssl: false
 
-# Reserved for a future daemon localhost bridge (primarily Velocity).
+# Daemon localhost bridge (graceful shutdown; proxies also use backends PUT).
 control:
   enabled: false
   bind: "127.0.0.1"

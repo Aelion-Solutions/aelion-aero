@@ -53,7 +53,7 @@ public final class AeroVelocityPlugin {
     public void onProxyInitialization(ProxyInitializeEvent event) {
         ensureDefaultConfig();
         registryService = new BackendRegistryService(proxy, logger);
-        controlHttpServer = new ControlHttpServer(logger, registryService);
+        controlHttpServer = new ControlHttpServer(logger, proxy, this, registryService);
         try {
             reloadAeroConfig();
         } catch (Exception e) {

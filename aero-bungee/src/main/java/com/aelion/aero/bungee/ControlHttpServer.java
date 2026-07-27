@@ -4,6 +4,7 @@ import com.aelion.aero.common.ControlApi;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendRegistry;
 import com.aelion.aero.common.control.ControlHealthResponse;
+import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.json.AeroJson;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -14,7 +15,11 @@ import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.logging.Logger;
+import net.md_5.bungee.api.ProxyServer;
+import net.md_5.bungee.api.chat.TextComponent;
+import net.md_5.bungee.api.connection.ProxiedPlayer;
 
 /**
  * Loopback-only HTTP control plane for the daemon.
@@ -22,11 +27,14 @@ import java.util.logging.Logger;
 final class ControlHttpServer {
 
     private final Logger logger;
+    private final ProxyServer proxy;
     private final BackendRegistryService registryService;
+    private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
     private HttpServer server;
 
-    ControlHttpServer(Logger logger, BackendRegistryService registryService) {
+    ControlHttpServer(Logger logger, ProxyServer proxy, BackendRegistryService registryService) {
         this.logger = logger;
+        this.proxy = proxy;
         this.registryService = registryService;
     }
 
@@ -80,6 +88,18 @@ final class ControlHttpServer {
             send(exchange, 405, "{\"error\":\"method not allowed\"}");
         });
 
+        server.createContext(ControlApi.SHUTDOWN_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            sendJson(exchange, 202, ControlShutdownResponse.accepted());
+            scheduleGracefulShutdown();
+        });
+
         server.setExecutor(Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "aero-control");
             t.setDaemon(true);
@@ -94,6 +114,20 @@ final class ControlHttpServer {
             server.stop(0);
             server = null;
         }
+    }
+
+    private void scheduleGracefulShutdown() {
+        if (!shutdownRequested.compareAndSet(false, true)) {
+            return;
+        }
+        logger.info("Control API requested graceful shutdown");
+        new Thread(() -> {
+            TextComponent reason = new TextComponent("Server is shutting down.");
+            for (ProxiedPlayer player : proxy.getPlayers()) {
+                player.disconnect(reason);
+            }
+            proxy.stop("Aero control shutdown");
+        }, "aero-control-shutdown").start();
     }
 
     private boolean authorize(HttpExchange exchange, String expectedToken) throws IOException {

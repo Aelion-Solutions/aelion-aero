@@ -4,6 +4,7 @@ import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.config.AeroConfig;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.logging.Level;
 import org.bukkit.plugin.ServicePriority;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -16,6 +17,7 @@ public final class BukkitAeroBootstrap {
     private final AtomicReference<AeroConfig> configRef =
             new AtomicReference<>(new AeroConfig("", "", "", AeroConfig.ControlConfig.disabled()));
     private BukkitFleetService fleetService;
+    private BukkitControlHttpServer controlHttpServer;
 
     public BukkitAeroBootstrap(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -73,6 +75,10 @@ public final class BukkitAeroBootstrap {
     }
 
     public void disable() {
+        if (controlHttpServer != null) {
+            controlHttpServer.stop();
+            controlHttpServer = null;
+        }
         plugin.getServer().getServicesManager().unregisterAll(plugin);
         if (fleetService != null) {
             fleetService.stop();
@@ -83,5 +89,17 @@ public final class BukkitAeroBootstrap {
     public void reloadAeroConfig() {
         plugin.reloadConfig();
         configRef.set(BukkitConfigBridge.fromBukkit(plugin.getConfig()));
+        restartControlServer();
+    }
+
+    private void restartControlServer() {
+        if (controlHttpServer == null) {
+            controlHttpServer = new BukkitControlHttpServer(plugin);
+        }
+        try {
+            controlHttpServer.start(config().control());
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Control API failed to start: " + e.getMessage(), e);
+        }
     }
 }

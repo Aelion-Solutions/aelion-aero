@@ -10,6 +10,7 @@ Keep this file aligned with cloud `docs/AELION_AERO.md` when behavior changes.
 | Health / server info | Plugin → panel HTTPS `/api/aero/v1` | `Authorization: Bearer <server-token>` | **Live in cloud** |
 | Fleet list / create (proxy) | Plugin → panel HTTPS | Same Bearer; create attaches proxy child | **Live in cloud** |
 | Hot backend sync | Panel → daemon RPC → localhost Aero | `X-Aero-Control-Token` + bind `127.0.0.1` | **Live** (Velocity + Bungee) |
+| Graceful stop | Daemon → localhost Aero `POST /v1/shutdown` → stdin stop → kill | `X-Aero-Control-Token` | **Live** (Paper + proxies) |
 | On-disk proxy config | Daemon keeps server maps empty | Live map is Aero memory only | **Live** |
 
 ```text
@@ -48,7 +49,7 @@ control:
 ```
 
 - **Server token**: first-party credential scoped to one server id (not a user API key).
-- **Control token**: known to daemon + proxy Aero only; never expose to players or panel public APIs.
+- **Control token**: known to daemon + Aero only; never expose to players or panel public APIs.
 
 ## Panel routes
 
@@ -110,15 +111,18 @@ At runtime, types come from the Aero plugin JAR (do not shade `aero-api` into si
 - Defaults: `autoStart=true` when omitted; attach role `backend` (optional `role`: `backend`\|`lobby`\|`try`)
 - Actor must be proxy software; new server is attached as a proxy child then backends sync
 
-## Proxy control API (implemented in Aero)
+## Localhost control API (implemented in Aero)
 
-**Live registry:** on-disk proxy server maps stay empty. Aero mutates the proxy’s
+Used by the daemon for **proxy live registry** and **graceful process shutdown**.
+
+**Live registry (proxies):** on-disk proxy server maps stay empty. Aero mutates the proxy’s
 in-memory server map only. Join routing uses platform events (lobby → try → any).
 On deregister, players are moved to a remaining lobby/try, or disconnected if none.
 
 - `GET /v1/health` — `{ "ok": true, "plugin": "AelionAero", "version": "..." }`
-- `GET /v1/backends` — last applied registry
-- `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }`
+- `GET /v1/backends` — last applied registry (proxies only)
+- `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }` (proxies only)
+- `POST /v1/shutdown` — drain players + schedule platform shutdown; returns `202 { "ok": true }` (Paper + proxies)
 - Header: `X-Aero-Control-Token: <control.token>`
 - Bind: loopback only
 
@@ -134,12 +138,17 @@ curl -s -X PUT http://127.0.0.1:25580/v1/backends \
   -H "X-Aero-Control-Token: devsecret" \
   -H "Content-Type: application/json" \
   -d '{"backends":[{"name":"lobby","address":"127.0.0.1:25565","role":"lobby"}]}'
+
+curl -s -X POST -H "X-Aero-Control-Token: devsecret" http://127.0.0.1:25580/v1/shutdown
 ```
 
 ## Daemon notify (live in aelion-cloud)
 
-Cloud daemon reads control port/token from `.aelion-aero.ae` and `PUT`s backends
-to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running.
+Cloud daemon reads control port/token from `.aelion-aero.ae` and:
+
+- `PUT`s backends to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running
+- On graceful stop: `POST /v1/shutdown`, brief wait, then stdin `stop`/`shutdown`/`end`, then force-kill
+
 See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
 
 ## Plugin JAR delivery (cloud follow-up)
