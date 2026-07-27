@@ -16,6 +16,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -70,6 +71,31 @@ public final class AeroCommandService {
         /** Online player names for tab-complete (prefix-filtered by caller). */
         default List<String> onlinePlayerNames() {
             return Collections.emptyList();
+        }
+
+        /** Player UUID for the command sender, or {@code null} for console. */
+        default UUID senderId() {
+            return null;
+        }
+
+        /**
+         * Enable or disable fleet notify for {@link #senderId()}.
+         *
+         * @return {@code true} if now enabled
+         * @throws UnsupportedOperationException if notify is not wired on this platform
+         */
+        default boolean setNotifyEnabled(boolean enabled) {
+            throw new UnsupportedOperationException("notify");
+        }
+
+        /** Whether fleet notify is enabled for {@link #senderId()}. */
+        default boolean isNotifyEnabled() {
+            return false;
+        }
+
+        /** {@code true} when this platform supports fleet notify. */
+        default boolean supportsNotify() {
+            return false;
         }
     }
 
@@ -143,6 +169,13 @@ public final class AeroCommandService {
                 }
                 transfer(platform, args);
                 break;
+            case "notify":
+                if (!platform.hasPermission(Permissions.INFO)) {
+                    platform.send(AeroCommandMessages.noPermission());
+                    return;
+                }
+                fleetNotify(platform, args);
+                break;
             default:
                 platform.send(AeroCommandMessages.unknownSubcommand(sub, platform.isProxy()));
                 break;
@@ -163,7 +196,7 @@ public final class AeroCommandService {
             Stream<String> roots = Stream.of(
                     "help", "info", "reload", "ping", "servers", "kick", "transfer");
             if (proxy) {
-                roots = Stream.concat(roots, Stream.of("backends", "create-server"));
+                roots = Stream.concat(roots, Stream.of("notify", "backends", "create-server"));
             }
             return roots.filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
@@ -172,6 +205,9 @@ public final class AeroCommandService {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             if ("servers".equals(sub)) {
                 return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
+            }
+            if ("notify".equals(sub)) {
+                return Stream.of("on", "off").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
             if (proxy && "backends".equals(sub)) {
                 return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
@@ -194,6 +230,49 @@ public final class AeroCommandService {
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
+    }
+
+    private static void fleetNotify(Platform platform, String[] args) {
+        if (!platform.isProxy()) {
+            platform.send(AeroCommandMessages.proxyOnly("notify"));
+            return;
+        }
+        if (!platform.supportsNotify()) {
+            platform.send(AeroCommandMessages.notifyUnavailable());
+            return;
+        }
+        if (platform.senderId() == null) {
+            platform.send(AeroCommandMessages.notifyPlayerOnly());
+            return;
+        }
+        Boolean force = null;
+        if (args.length >= 2 && Strings.isNotBlank(args[1])) {
+            String mode = args[1].trim().toLowerCase(Locale.ROOT);
+            if ("on".equals(mode) || "enable".equals(mode) || "true".equals(mode) || "1".equals(mode)) {
+                force = true;
+            } else if ("off".equals(mode)
+                    || "disable".equals(mode)
+                    || "false".equals(mode)
+                    || "0".equals(mode)) {
+                force = false;
+            } else {
+                platform.send(AeroCommandMessages.notifyUsage(true));
+                return;
+            }
+        }
+        boolean enabled;
+        try {
+            if (force == null) {
+                enabled = !platform.isNotifyEnabled();
+                platform.setNotifyEnabled(enabled);
+            } else {
+                enabled = platform.setNotifyEnabled(force);
+            }
+        } catch (UnsupportedOperationException e) {
+            platform.send(AeroCommandMessages.notifyUnavailable());
+            return;
+        }
+        platform.send(AeroCommandMessages.notifyEnabled(enabled));
     }
 
     private static void kick(Platform platform, String[] args) {

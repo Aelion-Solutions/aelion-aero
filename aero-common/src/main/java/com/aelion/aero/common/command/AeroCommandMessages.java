@@ -29,6 +29,7 @@ public final class AeroCommandMessages {
         lines.add(AeroCommandStyle.info(
                 "/" + cmd + " transfer <player> server=<id|name>|group=<id|name> §8— §7move a player"));
         if (proxy) {
+            lines.add(AeroCommandStyle.info("/" + cmd + " notify [on|off] §8— §7toggle fleet change chat"));
             lines.add(AeroCommandStyle.info("/" + cmd + " backends §8— §7list live proxy backends"));
             lines.add(AeroCommandStyle.info(
                     "/" + cmd + " create-server name=<n> template=<tpl> §8— §7or software=+version="));
@@ -58,6 +59,25 @@ public final class AeroCommandMessages {
 
     public static String noPermission() {
         return AeroCommandStyle.error("You do not have permission for that.");
+    }
+
+    public static String notifyPlayerOnly() {
+        return AeroCommandStyle.warn("Fleet notify is only available to players (not console).");
+    }
+
+    public static String notifyUsage(boolean proxy) {
+        return AeroCommandStyle.warn(
+                "Usage: /" + AeroConstants.commandRoot(proxy) + " notify [on|off]");
+    }
+
+    public static String notifyEnabled(boolean enabled) {
+        return enabled
+                ? AeroCommandStyle.success("Fleet notify on.")
+                : AeroCommandStyle.info("Fleet notify off.");
+    }
+
+    public static String notifyUnavailable() {
+        return AeroCommandStyle.error("Fleet notify is not available on this server.");
     }
 
     public static String unknownSubcommand(String sub, boolean proxy) {

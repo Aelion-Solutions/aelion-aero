@@ -103,6 +103,7 @@ On Velocity/Bungee, set `control.enabled` and `control.token` in `aero.ae` to ac
 | `/ae reload` or `/aes reload` | `aelion.aero.admin` | Reload config (+ restart control API on Velocity) |
 | `/ae ping` or `/aes ping` | info | Hit panel health/info |
 | `/ae servers list [--names]` or `/aes …` | info | Panel fleet for same owner |
+| `/ae notify [on\|off]` | info | Proxy only — toggle fleet change chat (session; daemon push) |
 | `/ae kick <player> [message…]` or `/aes …` | `aelion.aero.admin` | Kick online player |
 | `/ae transfer <player> server=\|group=` or `/aes …` | `aelion.aero.admin` | Transfer via fleet / proxy switch |
 | `/ae backends` | info | Live proxy backends (Velocity/Bungee only) |
