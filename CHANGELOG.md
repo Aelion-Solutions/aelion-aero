@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.3.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.2.1...v0.3.0) (2026-07-27)
+
+
+### Features
+
+* fleet bridge for sibling plugins and /ae command UX ([92c5be1](https://github.com/Aelion-Solutions/aelion-aero/commit/92c5be1de6bd9d67d9412cd78c84ed4e6c669657))
+* publish aero-api to GitHub Packages ([b22bdfb](https://github.com/Aelion-Solutions/aelion-aero/commit/b22bdfbb587690959bf3a710708c7e75a010392c))
+
 ## [0.2.1](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.2.0...v0.2.1) (2026-07-27)
 
 
