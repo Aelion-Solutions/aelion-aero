@@ -5,6 +5,8 @@ import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.ControlHealthResponse;
 import com.aelion.aero.common.control.ControlKickRequest;
 import com.aelion.aero.common.control.ControlPlayerActionResponse;
+import com.aelion.aero.common.control.ControlPlayerEntry;
+import com.aelion.aero.common.control.ControlPlayersResponse;
 import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
@@ -18,7 +20,9 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,7 +36,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 /**
  * Loopback-only HTTP control plane for the daemon (backends).
- * Health, graceful shutdown, player kick/transfer. No proxy backends registry.
+ * Health, graceful shutdown, player list/kick/transfer. No proxy backends registry.
  */
 final class BukkitControlHttpServer {
 
@@ -97,6 +101,17 @@ final class BukkitControlHttpServer {
             scheduleGracefulShutdown();
         });
 
+        server.createContext(ControlApi.PLAYERS_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            handleListPlayers(exchange);
+        });
+
         server.createContext(ControlApi.PLAYERS_KICK_PATH, exchange -> {
             if (!authorize(exchange, expectedToken)) {
                 return;
@@ -133,6 +148,26 @@ final class BukkitControlHttpServer {
             server.stop(0);
             server = null;
         }
+    }
+
+    private void handleListPlayers(HttpExchange exchange) throws IOException {
+        final List<ControlPlayerEntry> entries = new ArrayList<>();
+        try {
+            Bukkit.getScheduler().callSyncMethod(plugin, () -> {
+                for (Player player : Bukkit.getOnlinePlayers()) {
+                    if (player != null) {
+                        entries.add(new ControlPlayerEntry(
+                                player.getUniqueId().toString(),
+                                player.getName()));
+                    }
+                }
+                return Boolean.TRUE;
+            }).get();
+        } catch (Exception e) {
+            send(exchange, 500, "{\"error\":\"list players failed\"}");
+            return;
+        }
+        sendJson(exchange, 200, ControlPlayersResponse.of(entries));
     }
 
     private void handleKick(HttpExchange exchange) throws IOException {
