@@ -1,13 +1,4 @@
-# Aelion Aero — injected by Aelion Cloud at provision time.
-panel-url: ""
-server-id: ""
-token: ""
-# DEV ONLY: skip TLS cert/hostname checks for panel HTTPS (self-signed / mkcert).
-panel-insecure-ssl: false
-
-# Daemon localhost bridge (backends PUT + graceful shutdown).
-control:
-  enabled: false
-  bind: "127.0.0.1"
-  port: 25580
-  token: ""
+# Aelion Aero — operator / template-safe settings (no secrets).
+# Identity (panel URL, tokens, control, insecure SSL) lives in aero.ae
+# (injected by Aelion Cloud). Manual installs: create aero.ae next to this file.
+config-version: 1

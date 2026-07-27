@@ -80,4 +80,39 @@ public interface AeroFleetService {
      *         {@code false} if the player is offline, arguments are invalid, or messaging failed
      */
     boolean connectPlayer(UUID playerId, String proxyServerName);
+
+    /**
+     * Kick an online player on this backend with an optional message.
+     *
+     * <p>Blank or {@code null} {@code message} uses a default kick reason.
+     *
+     * @param playerId Bukkit player UUID
+     * @param message  kick reason shown to the player; may be blank
+     * @return {@code true} if the player was online and kicked; {@code false} otherwise
+     */
+    boolean kickPlayer(UUID playerId, String message);
+
+    /**
+     * Transfer an online player to a fleet server resolved by panel id or display name.
+     *
+     * <p>Resolves via {@link #listServers()}, then {@link #connectPlayer} with
+     * {@link FleetServerSnapshot#proxyName()}. Proxy-routed only (BungeeCord Connect).
+     *
+     * @param playerId       Bukkit player UUID; must be online on this backend
+     * @param serverIdOrName panel server id or display name
+     * @return {@code true} if Connect was sent; {@code false} if unresolved / offline / failed
+     */
+    boolean transferToServer(UUID playerId, String serverIdOrName);
+
+    /**
+     * Transfer an online player to a joinable member of a fleet group.
+     *
+     * <p>Picks the joinable member with the lowest {@link FleetServerSnapshot#currentPlayers()}
+     * (name tie-break), then Connects.
+     *
+     * @param playerId      Bukkit player UUID; must be online on this backend
+     * @param groupIdOrName panel group id or display name
+     * @return {@code true} if Connect was sent; {@code false} if no joinable member / offline / failed
+     */
+    boolean transferToGroup(UUID playerId, String groupIdOrName);
 }

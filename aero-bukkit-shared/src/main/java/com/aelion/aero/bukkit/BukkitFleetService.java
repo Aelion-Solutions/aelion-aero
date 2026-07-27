@@ -9,6 +9,7 @@ import com.aelion.aero.common.api.PanelApiException;
 import com.aelion.aero.common.api.PanelNotConfiguredException;
 import com.aelion.aero.common.api.ServerInfoResponse;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.fleet.FleetTransferResolver;
 import com.aelion.aero.common.util.Strings;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
@@ -21,6 +22,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.plugin.messaging.PluginMessageListener;
@@ -32,6 +34,7 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
 
     private static final String BUNGEE_CHANNEL = "BungeeCord";
     private static final long DEFAULT_TTL_MS = 2_000L;
+    private static final String DEFAULT_KICK_MESSAGE = ChatColor.YELLOW + "Kicked by Aelion Aero.";
 
     private final JavaPlugin plugin;
     private final Logger logger;
@@ -132,6 +135,48 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
             logger.log(Level.WARNING, "Failed to send Connect for " + player.getName(), e);
             return false;
         }
+    }
+
+    @Override
+    public boolean kickPlayer(UUID playerId, String message) {
+        if (playerId == null) {
+            return false;
+        }
+        String reason = Strings.isBlank(message) ? DEFAULT_KICK_MESSAGE : message;
+        if (Bukkit.isPrimaryThread()) {
+            return kickNow(playerId, reason);
+        }
+        try {
+            return Boolean.TRUE.equals(
+                    Bukkit.getScheduler().callSyncMethod(plugin, () -> kickNow(playerId, reason)).get());
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Failed to kick player " + playerId, e);
+            return false;
+        }
+    }
+
+    private static boolean kickNow(UUID playerId, String reason) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player == null || !player.isOnline()) {
+            return false;
+        }
+        player.kickPlayer(reason);
+        return true;
+    }
+
+    @Override
+    public boolean transferToServer(UUID playerId, String serverIdOrName) {
+        FleetServerSnapshot target = FleetTransferResolver.findServer(listServers(), serverIdOrName);
+        String proxy = FleetTransferResolver.proxyNameOf(target);
+        return connectPlayer(playerId, proxy);
+    }
+
+    @Override
+    public boolean transferToGroup(UUID playerId, String groupIdOrName) {
+        FleetGroupSnapshot group = FleetTransferResolver.findGroup(listGroups(), groupIdOrName);
+        FleetServerSnapshot member = FleetTransferResolver.pickJoinableMember(group);
+        String proxy = FleetTransferResolver.proxyNameOf(member);
+        return connectPlayer(playerId, proxy);
     }
 
     @Override

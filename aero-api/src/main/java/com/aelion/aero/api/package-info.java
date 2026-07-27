@@ -21,6 +21,16 @@
  * <p>Do <strong>not</strong> shade this package into consumer plugins — types must match the
  * classes loaded from the Aero plugin JAR.
  *
+ * <h2>Player utils</h2>
+ * {@link com.aelion.aero.api.AeroFleetService} also exposes:
+ * <ul>
+ *   <li>{@code kickPlayer(uuid, message)} — local kick (blank message → default reason)</li>
+ *   <li>{@code transferToServer(uuid, idOrName)} — resolve panel fleet server → BungeeCord Connect</li>
+ *   <li>{@code transferToGroup(uuid, idOrName)} — joinable member with lowest player count → Connect</li>
+ * </ul>
+ * Operators can run the same actions via {@code /aes kick} / {@code /aes transfer}, or the panel
+ * can drive them through the localhost control API ({@code POST /v1/players/kick|transfer}).
+ *
  * <h2>What this API is not</h2>
  * <ul>
  *   <li>Not the panel REST client (that lives in {@code aero-common}).</li>

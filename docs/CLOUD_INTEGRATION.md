@@ -25,31 +25,41 @@ scale member RUNNING
 
 ## Config injection (provision / start)
 
-Write into:
+Cloud injects **identity only** — never overwrites operator `config.yml` (safe in templates).
 
-| Software | Plugin `config.yml` path |
-|----------|--------------------------|
-| Paper / Spigot | `plugins/AelionAero/config.yml` |
-| Velocity | `plugins/aelionaero/config.yml` |
-| BungeeCord / Waterfall | `plugins/AelionAero/config.yml` |
+| File | Owner | Path |
+|------|--------|------|
+| Identity JSON | Cloud | `plugins/AelionAero/aero.ae` (Velocity: `plugins/aelionaero/aero.ae`) |
+| Operator YAML | Template / operator | same folder `config.yml` |
+| Daemon sidecar | Cloud | `.aelion-aero.ae` (server root; same JSON as identity) |
 
-Plus daemon sidecar `.aelion-aero.ae` (JSON) for hot-reload notify.
+Example `aero.ae` (injected):
+
+```json
+{
+  "panelUrl": "https://panel.example.com",
+  "serverId": "cms_...",
+  "token": "<server-scoped-token>",
+  "panelInsecureSsl": false,
+  "control": {
+    "enabled": true,
+    "bind": "127.0.0.1",
+    "port": 25580,
+    "token": "<control-token>"
+  }
+}
+```
+
+Example operator `config.yml` (template-safe):
 
 ```yaml
-panel-url: "https://panel.example.com"
-server-id: "cms_..."
-token: "<server-scoped-token>"
-# Local/dev only — skip panel TLS verification (self-signed / mkcert). Never enable in prod.
-panel-insecure-ssl: false
-control:
-  enabled: true          # true for Velocity/Bungee; false for Paper
-  bind: "127.0.0.1"
-  port: 25580            # cloud should allocate unique ports per proxy (follow-up)
-  token: "<control-token>"
+config-version: 1
 ```
 
 - **Server token**: first-party credential scoped to one server id (not a user API key).
 - **Control token**: known to daemon + Aero only; never expose to players or panel public APIs.
+- **`panelInsecureSsl`**: from panel setting `aero.panelInsecureSsl` (local/self-signed panels). Never enable in production.
+- Plugin merges `aero.ae` over `config.yml` on load/`/ae reload`. Legacy identity keys still in `config.yml` work until the next inject/migration.
 
 ## Panel routes
 
@@ -76,6 +86,12 @@ First-party plugins (Signs, later NPCs) depend on `AelionAero` and look up that 
 
 - `listServers()` / `listGroups()` — cached panel poll (~2s TTL)
 - `connectPlayer(uuid, proxyServerName)` — BungeeCord plugin messaging `Connect` (Velocity legacy channel)
+- `kickPlayer(uuid, message)` — local kick (blank message → default reason)
+- `transferToServer(uuid, idOrName)` / `transferToGroup(uuid, idOrName)` — resolve fleet then Connect
+
+In-game: `/aes|ae kick <player> [message…]` and
+`/aes|ae transfer <player> server=<id|name>|group=<id|name>` (`aelion.aero.admin`).
+Proxies kick/transfer natively; backends use the fleet bridge.
 
 #### Maven (`aero-api`)
 
@@ -123,10 +139,16 @@ On deregister, players are moved to a remaining lobby/try, or disconnected if no
 - `GET /v1/backends` — last applied registry (proxies only)
 - `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }` (proxies only)
 - `POST /v1/shutdown` — drain players + schedule platform shutdown; returns `202 { "ok": true }` (Paper + proxies)
+- `POST /v1/players/kick` — `{ "uuid", "message"? }` → `{ "ok": true }` / 404 offline (Paper + proxies)
+- `POST /v1/players/transfer` — `{ "uuid", "proxyServerName"? | "serverId"? | "serverName"? | "groupId"? | "groupName"? }` (Paper + proxies)
 - Header: `X-Aero-Control-Token: <control.token>`
 - Bind: loopback only
 
 A proxy restart clears the memory map until the panel/daemon re-PUTs the current registry.
+
+Panel operators can also kick/transfer via
+`POST /api/servers/:id/aero/players/kick|transfer` (daemon → same localhost paths).
+Call `:id` where the player is online.
 
 ### Manual test (no cloud)
 
@@ -147,6 +169,7 @@ curl -s -X POST -H "X-Aero-Control-Token: devsecret" http://127.0.0.1:25580/v1/s
 Cloud daemon reads control port/token from `.aelion-aero.ae` and:
 
 - `PUT`s backends to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running
+- `POST`s `/v1/players/kick` and `/v1/players/transfer` for panel operator actions
 - On graceful stop: `POST /v1/shutdown`, brief wait, then stdin `stop`/`shutdown`/`end`, then force-kill
 
 See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
@@ -159,6 +182,7 @@ See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
    - Map instance `software` + MC/proxy version → unique matrix row
    - Install `<artifact>-<productVer>.jar` into instance `plugins/`
    - No match → fail provision (do not guess)
+   - Product versions below cloud `minProductVersion` (`0.6.0`, first `aero.ae` release) are rejected (`AERO_VERSION_TOO_OLD`)
 4. Backend bands: `aero-bukkit-1_8`, `aero-bukkit-1_13`, `aero-paper-1_17`, `aero-paper-1_21`, `aero-paper-26`
 5. Proxies: `aero-velocity`, `aero-bungee`
 
@@ -177,5 +201,5 @@ Tracked as [aelion-cloud#328](https://github.com/Aelion-Solutions/aelion-cloud/i
 | Node | Default | Use |
 |------|---------|-----|
 | `aelion.aero.info` | true | help/info/ping/servers list/backends |
-| `aelion.aero.admin` | op | reload |
+| `aelion.aero.admin` | op | reload, kick, transfer |
 | `aelion.aero.create` | op | `/ae create-server` (proxy only) |
