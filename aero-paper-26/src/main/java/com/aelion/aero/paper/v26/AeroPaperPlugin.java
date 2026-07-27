@@ -7,7 +7,6 @@ import com.aelion.aero.common.Permissions;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.mojang.brigadier.Command;
-import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
 import io.papermc.paper.command.brigadier.CommandSourceStack;
 import io.papermc.paper.command.brigadier.Commands;
@@ -91,11 +90,6 @@ public final class AeroPaperPlugin extends JavaPlugin {
                                 dispatch(ctx.getSource().getSender(), new String[] {"servers"});
                                 return Command.SINGLE_SUCCESS;
                             }))
-                    .then(Commands.argument("subcommand", StringArgumentType.word()).executes(ctx -> {
-                        String sub = StringArgumentType.getString(ctx, "subcommand");
-                        dispatch(ctx.getSource().getSender(), new String[] {sub});
-                        return Command.SINGLE_SUCCESS;
-                    }))
                     .build();
 
             commands.register(
