@@ -51,8 +51,7 @@ public final class BukkitAeroBootstrap {
         BukkitAeroCommandExecutor.register(
                 plugin,
                 executor,
-                AeroConstants.COMMAND_PRIMARY,
-                AeroConstants.COMMAND_ALIAS);
+                AeroConstants.COMMAND_BACKEND_PRIMARY);
 
         plugin.getLogger().info(AeroConstants.NAME + " enabled (fleet bridge registered)");
     }

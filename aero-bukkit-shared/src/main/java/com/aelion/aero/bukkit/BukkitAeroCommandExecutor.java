@@ -11,7 +11,7 @@ import org.bukkit.command.TabCompleter;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Classic Bukkit {@link CommandExecutor} / {@link TabCompleter} for {@code /ae}.
+ * Classic Bukkit {@link CommandExecutor} / {@link TabCompleter} for {@code /aes}.
  */
 public final class BukkitAeroCommandExecutor implements CommandExecutor, TabCompleter {
 
@@ -44,16 +44,12 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
     }
 
     /**
-     * Registers primary + alias against plugin.yml command names.
+     * Registers the backend command name against plugin.yml.
      */
-    public static void register(JavaPlugin plugin, BukkitAeroCommandExecutor executor, String primary, String alias) {
-        if (plugin.getCommand(primary) != null) {
-            plugin.getCommand(primary).setExecutor(executor);
-            plugin.getCommand(primary).setTabCompleter(executor);
-        }
-        if (alias != null && plugin.getCommand(alias) != null) {
-            plugin.getCommand(alias).setExecutor(executor);
-            plugin.getCommand(alias).setTabCompleter(executor);
+    public static void register(JavaPlugin plugin, BukkitAeroCommandExecutor executor, String name) {
+        if (plugin.getCommand(name) != null) {
+            plugin.getCommand(name).setExecutor(executor);
+            plugin.getCommand(name).setTabCompleter(executor);
         }
     }
 

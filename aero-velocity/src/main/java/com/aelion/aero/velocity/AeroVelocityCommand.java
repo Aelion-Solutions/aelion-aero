@@ -44,8 +44,8 @@ final class AeroVelocityCommand implements SimpleCommand {
     }
 
     static void register(AeroVelocityPlugin plugin) {
-        var meta = plugin.proxy().getCommandManager().metaBuilder(AeroConstants.COMMAND_PRIMARY)
-                .aliases(AeroConstants.COMMAND_ALIAS)
+        var meta = plugin.proxy().getCommandManager().metaBuilder(AeroConstants.COMMAND_PROXY_PRIMARY)
+                .aliases(AeroConstants.COMMAND_PROXY_ALIAS)
                 .plugin(plugin)
                 .build();
         plugin.proxy().getCommandManager().register(meta, new AeroVelocityCommand(plugin));

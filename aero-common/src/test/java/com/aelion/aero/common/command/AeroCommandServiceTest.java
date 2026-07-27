@@ -19,7 +19,7 @@ class AeroCommandServiceTest {
         AeroCommandService.execute(new String[0], platform);
         assertFalse(platform.lines.isEmpty());
         assertTrue(platform.lines.get(0).contains("Aero"));
-        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("/ae help")));
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("/aes help")));
         assertTrue(platform.lines.stream().anyMatch(l -> l.contains("servers list")));
         assertFalse(platform.lines.stream().anyMatch(l -> l.contains("create-server")));
     }
@@ -28,6 +28,7 @@ class AeroCommandServiceTest {
     void proxyHelpIncludesCreateAndBackends() {
         RecordingPlatform platform = new RecordingPlatform(true);
         AeroCommandService.execute(new String[] {"help"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("/ae help")));
         assertTrue(platform.lines.stream().anyMatch(l -> l.contains("create-server")));
         assertTrue(platform.lines.stream().anyMatch(l -> l.contains("backends")));
     }
@@ -37,6 +38,7 @@ class AeroCommandServiceTest {
         RecordingPlatform platform = new RecordingPlatform(false);
         AeroCommandService.execute(new String[] {"nope"}, platform);
         assertTrue(platform.lines.get(0).contains("Unknown subcommand"));
+        assertTrue(platform.lines.get(0).contains("/aes help"));
         assertTrue(platform.lines.get(0).contains(AeroCommandStyle.PREFIX)
                 || platform.lines.get(0).contains("["));
     }
@@ -103,7 +105,7 @@ class AeroCommandServiceTest {
     void serversListRequiresListSubcommand() {
         RecordingPlatform platform = new RecordingPlatform(false);
         AeroCommandService.execute(new String[] {"servers"}, platform);
-        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("servers list")));
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("/aes servers list")));
     }
 
     @Test

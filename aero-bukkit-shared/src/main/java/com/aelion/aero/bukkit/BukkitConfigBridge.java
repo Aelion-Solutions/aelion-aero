@@ -19,6 +19,7 @@ public final class BukkitConfigBridge {
         root.put("panel-url", config.getString("panel-url", ""));
         root.put("server-id", config.getString("server-id", ""));
         root.put("token", config.getString("token", ""));
+        root.put("panel-insecure-ssl", config.getBoolean("panel-insecure-ssl", false));
         ConfigurationSection control = config.getConfigurationSection("control");
         Map<String, Object> controlMap = new HashMap<>();
         if (control != null) {

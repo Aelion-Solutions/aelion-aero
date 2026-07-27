@@ -9,7 +9,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Shared operator-facing strings for /ae commands (legacy § colors + prefix).
+ * Shared operator-facing strings for /ae (proxy) and /aes (backend) commands (legacy § colors + prefix).
  */
 public final class AeroCommandMessages {
 
@@ -17,7 +17,7 @@ public final class AeroCommandMessages {
     }
 
     public static List<String> help(boolean proxy) {
-        String cmd = AeroConstants.COMMAND_PRIMARY;
+        String cmd = AeroConstants.commandRoot(proxy);
         List<String> lines = new ArrayList<>();
         lines.add(AeroCommandStyle.success(AeroConstants.NAME + " §fv" + AeroVersion.VERSION));
         lines.add(AeroCommandStyle.info("/" + cmd + " help §8— §7show this help"));
@@ -44,6 +44,8 @@ public final class AeroCommandMessages {
                 config.panelHostForDisplay().isEmpty() ? "(not set)" : config.panelHostForDisplay()));
         lines.add(AeroCommandStyle.label("panel configured", String.valueOf(config.isPanelConfigured())));
         lines.add(AeroCommandStyle.label(
+                "panel insecure ssl", String.valueOf(config.panelInsecureSsl())));
+        lines.add(AeroCommandStyle.label(
                 "control",
                 config.control().enabled()
                         ? "enabled (" + config.control().bind() + ":" + config.control().port() + ")"
@@ -55,9 +57,10 @@ public final class AeroCommandMessages {
         return AeroCommandStyle.error("You do not have permission for that.");
     }
 
-    public static String unknownSubcommand(String sub) {
+    public static String unknownSubcommand(String sub, boolean proxy) {
         return AeroCommandStyle.error(
-                "Unknown subcommand §f" + sub + "§c. Try §f/" + AeroConstants.COMMAND_PRIMARY + " help§c.");
+                "Unknown subcommand §f" + sub + "§c. Try §f/"
+                        + AeroConstants.commandRoot(proxy) + " help§c.");
     }
 
     public static String proxyOnly(String feature) {
@@ -103,7 +106,7 @@ public final class AeroCommandMessages {
 
     public static String createUsageServer() {
         return AeroCommandStyle.warn(
-                "Usage: /" + AeroConstants.COMMAND_PRIMARY
+                "Usage: /" + AeroConstants.COMMAND_PROXY_PRIMARY
                         + " create-server name=<name> template=<template>"
                         + " §8|§e name=<name> software=<sw> version=<ver> [memory=] [role=backend]");
     }
@@ -112,9 +115,14 @@ public final class AeroCommandMessages {
         return AeroCommandStyle.success("Created server §f" + name + "§a (" + id + ") status=" + status);
     }
 
-    public static String serversUsage() {
+    public static String serversUsage(boolean proxy) {
         return AeroCommandStyle.warn(
-                "Usage: /" + AeroConstants.COMMAND_PRIMARY + " servers list [--names]");
+                "Usage: /" + AeroConstants.commandRoot(proxy) + " servers list [--names]");
+    }
+
+    public static String backendsUsage() {
+        return AeroCommandStyle.warn(
+                "Usage: /" + AeroConstants.COMMAND_PROXY_PRIMARY + " backends [list]");
     }
 
     public static List<String> formatServerList(

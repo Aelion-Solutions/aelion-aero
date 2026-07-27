@@ -6,7 +6,7 @@ author: Aelion Solutions
 description: Connects this Paper server to Aelion Cloud (26.x)
 website: https://github.com/Aelion-Solutions/aelion-aero
 
-# Commands are registered via Paper LifecycleEvents.COMMANDS (Brigadier) so bare /ae works.
+# Commands are registered via Paper LifecycleEvents.COMMANDS (Brigadier) so bare /aes works.
 permissions:
   aelion.aero.info:
     description: View Aelion Aero status

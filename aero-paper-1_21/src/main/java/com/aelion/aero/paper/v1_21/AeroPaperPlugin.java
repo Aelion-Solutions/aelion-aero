@@ -52,7 +52,7 @@ public final class AeroPaperPlugin extends JavaPlugin {
     private void registerCommands() {
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
-            LiteralCommandNode<CommandSourceStack> root = Commands.literal(AeroConstants.COMMAND_PRIMARY)
+            LiteralCommandNode<CommandSourceStack> root = Commands.literal(AeroConstants.COMMAND_BACKEND_PRIMARY)
                     .requires(stack -> stack.getSender().hasPermission(Permissions.INFO)
                             || stack.getSender().hasPermission(Permissions.ADMIN))
                     .executes(ctx -> {
@@ -100,8 +100,8 @@ public final class AeroPaperPlugin extends JavaPlugin {
 
             commands.register(
                     root,
-                    "Aelion Aero admin commands",
-                    List.of(AeroConstants.COMMAND_ALIAS));
+                    "Aelion Aero server commands",
+                    List.of());
         });
     }
 
