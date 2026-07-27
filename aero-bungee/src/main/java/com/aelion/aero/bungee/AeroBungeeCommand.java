@@ -7,10 +7,12 @@ import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
+import com.aelion.aero.common.fleet.FleetNotifyService;
 import com.aelion.aero.common.util.Strings;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import net.md_5.bungee.api.CommandSender;
 import net.md_5.bungee.api.chat.TextComponent;
@@ -163,6 +165,35 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
             return plugin.getProxy().getPlayers().stream()
                     .map(ProxiedPlayer::getName)
                     .collect(Collectors.toList());
+        }
+
+        @Override
+        public UUID senderId() {
+            return sender instanceof ProxiedPlayer
+                    ? ((ProxiedPlayer) sender).getUniqueId()
+                    : null;
+        }
+
+        @Override
+        public boolean supportsNotify() {
+            return plugin.notifyService() != null;
+        }
+
+        @Override
+        public boolean isNotifyEnabled() {
+            FleetNotifyService notify = plugin.notifyService();
+            UUID id = senderId();
+            return notify != null && id != null && notify.isEnabled(id);
+        }
+
+        @Override
+        public boolean setNotifyEnabled(boolean enabled) {
+            FleetNotifyService notify = plugin.notifyService();
+            UUID id = senderId();
+            if (notify == null || id == null) {
+                throw new UnsupportedOperationException("notify");
+            }
+            return notify.setEnabled(id, enabled);
         }
     }
 }

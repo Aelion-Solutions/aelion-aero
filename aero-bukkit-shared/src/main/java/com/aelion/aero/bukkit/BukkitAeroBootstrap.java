@@ -41,14 +41,7 @@ public final class BukkitAeroBootstrap {
         if (!loadConfigOrShutdown()) {
             return;
         }
-        fleetService = new BukkitFleetService(plugin, configRef);
-        fleetService.start();
-        plugin.getServer().getServicesManager().register(
-                AeroFleetService.class,
-                fleetService,
-                plugin,
-                ServicePriority.Normal);
-
+        startFleet();
         BukkitAeroCommandExecutor executor = new BukkitAeroCommandExecutor(
                 plugin,
                 this::config,
@@ -69,6 +62,11 @@ public final class BukkitAeroBootstrap {
         if (!loadConfigOrShutdown()) {
             return;
         }
+        startFleet();
+        plugin.getLogger().info(AeroConstants.NAME + " enabled (fleet bridge registered)");
+    }
+
+    private void startFleet() {
         fleetService = new BukkitFleetService(plugin, configRef);
         fleetService.start();
         plugin.getServer().getServicesManager().register(
@@ -76,7 +74,6 @@ public final class BukkitAeroBootstrap {
                 fleetService,
                 plugin,
                 ServicePriority.Normal);
-        plugin.getLogger().info(AeroConstants.NAME + " enabled (fleet bridge registered)");
     }
 
     /**

@@ -93,6 +93,10 @@ In-game: `/aes|ae kick <player> [message…]` and
 `/aes|ae transfer <player> server=<id|name>|group=<id|name>` (`aelion.aero.admin`).
 Proxies kick/transfer natively; backends use the fleet bridge.
 
+Fleet notify: `/ae notify [on|off]` (`aelion.aero.info`, **proxy only**) — session toggle.
+Daemon pushes `POST /v1/fleet-notify` with status/create/delete events; Aero formats chat for
+opted-in players. No panel poll and no `/aes notify`.
+
 #### Maven (`aero-api`)
 
 Thin compile-only artifact (no Minecraft deps), published to GitHub Packages on each Aero release
@@ -142,6 +146,7 @@ On deregister, players are moved to a remaining lobby/try, or disconnected if no
 - `GET /v1/players` — `{ "players": [ { "uuid", "name" } ] }` online set; empty → `{ "players": [] }` (Paper + proxies)
 - `POST /v1/players/kick` — `{ "uuid", "message"? }` → `{ "ok": true }` / 404 offline (Paper + proxies)
 - `POST /v1/players/transfer` — `{ "uuid", "proxyServerName"? | "serverId"? | "serverName"? | "groupId"? | "groupName"? }` (Paper + proxies)
+- `POST /v1/fleet-notify` — `{ "events": [ { "id", "name", "status", "groupId"?, "groupName"? } ] }` → `{ "ok": true, "delivered": N }` (proxies only; chat to `/ae notify` subscribers)
 - Header: `X-Aero-Control-Token: <control.token>`
 - Bind: loopback only
 
@@ -174,6 +179,7 @@ Cloud daemon reads control port/token from `.aelion-aero.ae` and:
 - `PUT`s backends to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running
 - `GET`s `/v1/players` for online player uuid/name lists (Paper + proxies)
 - `POST`s `/v1/players/kick` and `/v1/players/transfer` for panel operator actions
+- `POST`s `/v1/fleet-notify` to same-owner running proxies on server status/create/delete (opted-in `/ae notify` chat)
 - On graceful stop: `POST /v1/shutdown`, brief wait, then stdin `stop`/`shutdown`/`end`, then force-kill
 
 See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.

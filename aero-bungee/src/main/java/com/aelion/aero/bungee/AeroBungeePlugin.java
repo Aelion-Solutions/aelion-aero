@@ -4,6 +4,7 @@ import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.AeroVersion;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.config.AeroConfigLoader;
+import com.aelion.aero.common.fleet.FleetNotifyService;
 import java.io.IOException;
 import net.md_5.bungee.api.plugin.Plugin;
 
@@ -15,10 +16,15 @@ public final class AeroBungeePlugin extends Plugin {
     private AeroConfig aeroConfig = AeroConfig.empty();
     private BackendRegistryService registryService;
     private ControlHttpServer controlHttpServer;
+    private FleetNotifyService notifyService;
+    private BungeeFleetNotifyBridge notifyBridge;
 
     @Override
     public void onEnable() {
         registryService = new BackendRegistryService(getProxy(), getLogger());
+        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
+        notifyBridge = new BungeeFleetNotifyBridge(this, notifyService);
+        notifyBridge.start();
         controlHttpServer = new ControlHttpServer(getLogger(), getProxy(), this, registryService);
         try {
             reloadAeroConfig();
@@ -32,6 +38,11 @@ public final class AeroBungeePlugin extends Plugin {
 
     @Override
     public void onDisable() {
+        if (notifyBridge != null) {
+            notifyBridge.stop();
+            notifyBridge = null;
+        }
+        notifyService = null;
         if (controlHttpServer != null) {
             controlHttpServer.stop();
         }
@@ -44,6 +55,16 @@ public final class AeroBungeePlugin extends Plugin {
 
     BackendRegistryService registryService() {
         return registryService;
+    }
+
+    FleetNotifyService notifyService() {
+        return notifyService;
+    }
+
+    private void deliverNotify(java.util.UUID playerId, String legacyLine) {
+        if (notifyBridge != null) {
+            notifyBridge.deliver(playerId, legacyLine);
+        }
     }
 
     public void reloadAeroConfig() throws IOException {

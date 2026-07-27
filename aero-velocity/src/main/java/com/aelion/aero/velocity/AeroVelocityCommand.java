@@ -7,6 +7,7 @@ import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
+import com.aelion.aero.common.fleet.FleetNotifyService;
 import com.aelion.aero.common.util.Strings;
 import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.proxy.Player;
@@ -15,6 +16,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 import net.kyori.adventure.text.Component;
@@ -186,6 +188,36 @@ final class AeroVelocityCommand implements SimpleCommand {
             return plugin.proxy().getAllPlayers().stream()
                     .map(Player::getUsername)
                     .collect(Collectors.toList());
+        }
+
+        @Override
+        public UUID senderId() {
+            if (invocation.source() instanceof Player) {
+                return ((Player) invocation.source()).getUniqueId();
+            }
+            return null;
+        }
+
+        @Override
+        public boolean supportsNotify() {
+            return plugin.notifyService() != null;
+        }
+
+        @Override
+        public boolean isNotifyEnabled() {
+            FleetNotifyService notify = plugin.notifyService();
+            UUID id = senderId();
+            return notify != null && id != null && notify.isEnabled(id);
+        }
+
+        @Override
+        public boolean setNotifyEnabled(boolean enabled) {
+            FleetNotifyService notify = plugin.notifyService();
+            UUID id = senderId();
+            if (notify == null || id == null) {
+                throw new UnsupportedOperationException("notify");
+            }
+            return notify.setEnabled(id, enabled);
         }
     }
 }

@@ -4,6 +4,8 @@ import com.aelion.aero.common.ControlApi;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.BackendRegistry;
+import com.aelion.aero.common.control.ControlFleetNotifyRequest;
+import com.aelion.aero.common.control.ControlFleetNotifyResponse;
 import com.aelion.aero.common.control.ControlHealthResponse;
 import com.aelion.aero.common.control.ControlKickRequest;
 import com.aelion.aero.common.control.ControlPlayerActionResponse;
@@ -12,6 +14,7 @@ import com.aelion.aero.common.control.ControlPlayersResponse;
 import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
+import com.aelion.aero.common.fleet.FleetNotifyService;
 import com.aelion.aero.common.json.AeroJson;
 import com.aelion.aero.common.util.Strings;
 import com.sun.net.httpserver.Headers;
@@ -153,6 +156,17 @@ final class ControlHttpServer {
             handleTransfer(exchange);
         });
 
+        server.createContext(ControlApi.FLEET_NOTIFY_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            handleFleetNotify(exchange);
+        });
+
         server.setExecutor(Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "aero-control");
             t.setDaemon(true);
@@ -244,6 +258,22 @@ final class ControlHttpServer {
         }
         player.connect(target);
         sendJson(exchange, 200, ControlPlayerActionResponse.ok());
+    }
+
+    private void handleFleetNotify(HttpExchange exchange) throws IOException {
+        ControlFleetNotifyRequest req;
+        try (InputStream in = exchange.getRequestBody()) {
+            req = AeroJson.mapper().readValue(in, ControlFleetNotifyRequest.class);
+        } catch (Exception e) {
+            send(exchange, 400, "{\"error\":\"invalid fleet-notify payload\"}");
+            return;
+        }
+        FleetNotifyService notify = plugin.notifyService();
+        int delivered = 0;
+        if (notify != null && req != null) {
+            delivered = notify.deliverPushed(req.getEvents());
+        }
+        sendJson(exchange, 200, ControlFleetNotifyResponse.ok(delivered));
     }
 
     private static UUID parseUuid(String raw) {

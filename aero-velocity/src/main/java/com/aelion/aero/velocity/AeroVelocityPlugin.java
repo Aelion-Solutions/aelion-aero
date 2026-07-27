@@ -4,6 +4,7 @@ import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.AeroVersion;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.config.AeroConfigLoader;
+import com.aelion.aero.common.fleet.FleetNotifyService;
 import com.google.inject.Inject;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
@@ -35,6 +36,8 @@ public final class AeroVelocityPlugin {
     private AeroConfig aeroConfig = AeroConfig.empty();
     private BackendRegistryService registryService;
     private ControlHttpServer controlHttpServer;
+    private FleetNotifyService notifyService;
+    private VelocityFleetNotifyBridge notifyBridge;
 
     @Inject
     public AeroVelocityPlugin(
@@ -50,6 +53,9 @@ public final class AeroVelocityPlugin {
     @Subscribe
     public void onProxyInitialization(ProxyInitializeEvent event) {
         registryService = new BackendRegistryService(proxy, logger);
+        notifyService = new FleetNotifyService(this::aeroConfig, this::deliverNotify);
+        notifyBridge = new VelocityFleetNotifyBridge(this, proxy, notifyService);
+        notifyBridge.start();
         controlHttpServer = new ControlHttpServer(logger, proxy, this, registryService);
         try {
             reloadAeroConfig();
@@ -63,6 +69,11 @@ public final class AeroVelocityPlugin {
 
     @Subscribe
     public void onProxyShutdown(ProxyShutdownEvent event) {
+        if (notifyBridge != null) {
+            notifyBridge.stop();
+            notifyBridge = null;
+        }
+        notifyService = null;
         if (controlHttpServer != null) {
             controlHttpServer.stop();
         }
@@ -79,6 +90,16 @@ public final class AeroVelocityPlugin {
 
     BackendRegistryService registryService() {
         return registryService;
+    }
+
+    FleetNotifyService notifyService() {
+        return notifyService;
+    }
+
+    private void deliverNotify(java.util.UUID playerId, String legacyLine) {
+        if (notifyBridge != null) {
+            notifyBridge.deliver(playerId, legacyLine);
+        }
     }
 
     public void reloadAeroConfig() throws IOException {

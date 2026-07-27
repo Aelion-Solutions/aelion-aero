@@ -138,12 +138,55 @@ class AeroCommandServiceTest {
     }
 
     @Test
-    void tabCompleteProxyIncludesCreate() {
+    void helpIncludesNotifyOnProxyOnly() {
+        RecordingPlatform paper = new RecordingPlatform(false);
+        AeroCommandService.execute(new String[] {"help"}, paper);
+        assertFalse(paper.lines.stream().anyMatch(l -> l.contains("notify")));
+
+        RecordingPlatform proxy = new RecordingPlatform(true);
+        AeroCommandService.execute(new String[] {"help"}, proxy);
+        assertTrue(proxy.lines.stream().anyMatch(l -> l.contains("notify")));
+    }
+
+    @Test
+    void notifyRejectedOnBackend() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.supportsNotify = true;
+        platform.senderUuid = java.util.UUID.randomUUID();
+        AeroCommandService.execute(new String[] {"notify"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("proxy")));
+    }
+
+    @Test
+    void notifyRequiresPlayer() {
+        RecordingPlatform platform = new RecordingPlatform(true);
+        platform.supportsNotify = true;
+        AeroCommandService.execute(new String[] {"notify"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("players") || l.contains("console")));
+    }
+
+    @Test
+    void notifyTogglesForPlayer() {
+        RecordingPlatform platform = new RecordingPlatform(true);
+        platform.supportsNotify = true;
+        platform.senderUuid = java.util.UUID.randomUUID();
+        AeroCommandService.execute(new String[] {"notify"}, platform);
+        assertTrue(platform.notifyEnabled);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("on")));
+        AeroCommandService.execute(new String[] {"notify", "off"}, platform);
+        assertFalse(platform.notifyEnabled);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("off")));
+    }
+
+    @Test
+    void tabCompleteIncludesNotifyOnProxyOnly() {
         List<String> paper = AeroCommandService.tabComplete(new String[] {""}, false);
+        assertFalse(paper.contains("notify"));
         List<String> proxy = AeroCommandService.tabComplete(new String[] {""}, true);
-        assertFalse(paper.contains("create-server"));
-        assertTrue(proxy.contains("create-server"));
-        assertTrue(proxy.contains("backends"));
+        assertTrue(proxy.contains("notify"));
+        List<String> modes = AeroCommandService.tabComplete(new String[] {"notify", ""}, true);
+        assertTrue(modes.contains("on"));
+        assertTrue(modes.contains("off"));
     }
 
     private static final class RecordingPlatform implements AeroCommandService.Platform {
@@ -151,6 +194,9 @@ class AeroCommandServiceTest {
         private final AtomicBoolean asyncRan = new AtomicBoolean(false);
         private final boolean proxy;
         private final List<BackendEntry> backends = new ArrayList<>();
+        private boolean supportsNotify;
+        private java.util.UUID senderUuid;
+        private boolean notifyEnabled;
 
         private RecordingPlatform(boolean proxy) {
             this.proxy = proxy;
@@ -199,6 +245,27 @@ class AeroCommandServiceTest {
         @Override
         public List<BackendEntry> backendsSnapshot() {
             return new ArrayList<>(backends);
+        }
+
+        @Override
+        public java.util.UUID senderId() {
+            return senderUuid;
+        }
+
+        @Override
+        public boolean supportsNotify() {
+            return supportsNotify;
+        }
+
+        @Override
+        public boolean isNotifyEnabled() {
+            return notifyEnabled;
+        }
+
+        @Override
+        public boolean setNotifyEnabled(boolean enabled) {
+            notifyEnabled = enabled;
+            return notifyEnabled;
         }
     }
 }
