@@ -1,0 +1,11 @@
+# Aelion Aero — injected by Aelion Cloud at provision time (later).
+panel-url: ""
+server-id: ""
+token: ""
+
+# Reserved for a future daemon localhost bridge (primarily Velocity).
+control:
+  enabled: false
+  bind: "127.0.0.1"
+  port: 25580
+  token: ""

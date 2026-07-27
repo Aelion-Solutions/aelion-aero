@@ -26,7 +26,8 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 | `aero-bukkit-1_8` | `aero-bukkit-1_8-<version>.jar` | Spigot/Paper **1.8–1.12.2** |
 | `aero-bukkit-1_13` | `aero-bukkit-1_13-<version>.jar` | Spigot/Paper **1.13–1.16.5** |
 | `aero-paper-1_17` | `aero-paper-1_17-<version>.jar` | Paper **1.17–1.20.x** |
-| `aero-paper-1_21` | `aero-paper-1_21-<version>.jar` | Paper **1.21+** |
+| `aero-paper-1_21` | `aero-paper-1_21-<version>.jar` | Paper **1.21.x** |
+| `aero-paper-26` | `aero-paper-26-<version>.jar` | Paper **26.x** |
 | `aero-velocity` | `aero-velocity-<version>.jar` | Velocity **3.4.x** |
 | `aero-bungee` | `aero-bungee-<version>.jar` | BungeeCord / Waterfall |
 
@@ -36,7 +37,8 @@ Compatibility matrix: [`compat/aero-compat.yml`](compat/aero-compat.yml).
 
 ## Requirements
 
-- JDK **21** (builds all bands; legacy JARs target Java 8 bytecode)
+- JDK **21** (builds most modules; toolchain auto-provisions)
+- JDK **25** required to compile `aero-paper-26` (Paper 26.x)
 - Gradle Wrapper (included)
 
 ## Build
@@ -51,6 +53,7 @@ Plugin JARs:
 - `aero-bukkit-1_13/build/libs/aero-bukkit-1_13-<version>.jar`
 - `aero-paper-1_17/build/libs/aero-paper-1_17-<version>.jar`
 - `aero-paper-1_21/build/libs/aero-paper-1_21-<version>.jar`
+- `aero-paper-26/build/libs/aero-paper-26-<version>.jar`
 - `aero-velocity/build/libs/aero-velocity-<version>.jar`
 - `aero-bungee/build/libs/aero-bungee-<version>.jar`
 
