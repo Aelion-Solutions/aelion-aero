@@ -40,6 +40,7 @@ final class BukkitControlHttpServer {
 
     synchronized void start(AeroConfig.ControlConfig control) throws IOException {
         stop();
+        shutdownRequested.set(false);
         if (!control.enabled()) {
             return;
         }
