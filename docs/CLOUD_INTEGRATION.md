@@ -143,8 +143,8 @@ See cloud `daemon/internal/aero/` and `docs/AELION_AERO.md`.
 ## Plugin JAR delivery (cloud follow-up)
 
 1. Panel fetches GitHub Release assets from `aelion-aero` (private → `AERO_GITHUB_TOKEN` on **panel only**).
-2. Cache under e.g. `data/aero-plugins/<productVer>/`.
-3. Select the artifact with [`compat/aero-compat.yml`](../compat/aero-compat.yml) (see [COMPATIBILITY.md](COMPATIBILITY.md)):
+2. Cache under e.g. `data/aero-plugins/aero/<productVer>/` (JARs + `aero-compat.yml`).
+3. Load that release’s [`compat/aero-compat.yml`](../compat/aero-compat.yml) (release asset, or Contents API at the tag for older releases) — see [COMPATIBILITY.md](COMPATIBILITY.md):
    - Map instance `software` + MC/proxy version → unique matrix row
    - Install `<artifact>-<productVer>.jar` into instance `plugins/`
    - No match → fail provision (do not guess)

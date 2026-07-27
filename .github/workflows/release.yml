@@ -82,6 +82,7 @@ jobs:
           tag_name: ${{ needs.release-please.outputs.tag_name }}
           fail_on_unmatched_files: true
           files: |
+            compat/aero-compat.yml
             aero-bukkit-1_8/build/libs/aero-bukkit-1_8-${{ steps.version.outputs.version }}.jar
             aero-bukkit-1_13/build/libs/aero-bukkit-1_13-${{ steps.version.outputs.version }}.jar
             aero-paper-1_17/build/libs/aero-paper-1_17-${{ steps.version.outputs.version }}.jar
