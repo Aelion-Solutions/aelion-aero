@@ -1,0 +1,19 @@
+name: AelionAero
+version: ${version}
+main: com.aelion.aero.paper.v1_21.AeroPaperPlugin
+api-version: "1.21"
+author: Aelion Solutions
+description: Connects this Paper server to Aelion Cloud (1.21+)
+website: https://github.com/Aelion-Solutions/aelion-aero
+
+# Commands are registered via Paper LifecycleEvents.COMMANDS (Brigadier) so bare /ae works.
+permissions:
+  aelion.aero.info:
+    description: View Aelion Aero status
+    default: true
+  aelion.aero.admin:
+    description: Reload config and admin actions
+    default: op
+  aelion.aero.create:
+    description: Create servers/groups via panel (reserved)
+    default: op

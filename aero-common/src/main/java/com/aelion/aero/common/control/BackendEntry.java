@@ -1,5 +1,6 @@
 package com.aelion.aero.common.control;
 
+import com.aelion.aero.common.util.Strings;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.Objects;
 
@@ -47,7 +48,7 @@ public final class BackendEntry {
     }
 
     public boolean isValid() {
-        return name != null && !name.isBlank() && address != null && !address.isBlank();
+        return Strings.isNotBlank(name) && Strings.isNotBlank(address);
     }
 
     @Override
@@ -55,9 +56,10 @@ public final class BackendEntry {
         if (this == o) {
             return true;
         }
-        if (!(o instanceof BackendEntry that)) {
+        if (!(o instanceof BackendEntry)) {
             return false;
         }
+        BackendEntry that = (BackendEntry) o;
         return Objects.equals(name, that.name)
                 && Objects.equals(address, that.address)
                 && role == that.role;

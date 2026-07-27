@@ -9,6 +9,10 @@ java {
     withJavadocJar()
 }
 
+tasks.withType<JavaCompile>().configureEach {
+    options.release.set(8)
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {

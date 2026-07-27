@@ -1,0 +1,10 @@
+# Aelion Aero — injected by Aelion Cloud at provision time (later).
+panel-url: ""
+server-id: ""
+token: ""
+
+control:
+  enabled: false
+  bind: "127.0.0.1"
+  port: 25580
+  token: ""

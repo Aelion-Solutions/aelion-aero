@@ -1,6 +1,7 @@
 package com.aelion.aero.common.config;
 
 import com.aelion.aero.common.ControlApi;
+import com.aelion.aero.common.util.Strings;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
@@ -52,7 +53,7 @@ public final class AeroConfig {
         try {
             java.net.URI uri = java.net.URI.create(panelUrl);
             String host = uri.getHost();
-            return host == null || host.isBlank() ? panelUrl : host;
+            return Strings.isBlank(host) ? panelUrl : host;
         } catch (IllegalArgumentException e) {
             return "(invalid url)";
         }
@@ -68,8 +69,8 @@ public final class AeroConfig {
         String token = stringVal(root.get("token"));
         Object controlObj = root.get("control");
         ControlConfig control = ControlConfig.disabled();
-        if (controlObj instanceof Map<?, ?> controlMap) {
-            control = ControlConfig.fromMap((Map<String, Object>) controlMap);
+        if (controlObj instanceof Map) {
+            control = ControlConfig.fromMap((Map<String, Object>) controlObj);
         }
         return new AeroConfig(panelUrl, serverId, token, control);
     }
@@ -86,7 +87,7 @@ public final class AeroConfig {
 
         public ControlConfig(boolean enabled, String bind, int port, String token) {
             this.enabled = enabled;
-            this.bind = bind == null || bind.isBlank() ? ControlApi.DEFAULT_BIND : bind.trim();
+            this.bind = Strings.isBlank(bind) ? ControlApi.DEFAULT_BIND : bind.trim();
             this.port = port <= 0 ? ControlApi.DEFAULT_PORT : port;
             this.token = token == null ? "" : token.trim();
         }
@@ -131,8 +132,8 @@ public final class AeroConfig {
         }
 
         private static boolean boolVal(Object value, boolean defaultValue) {
-            if (value instanceof Boolean b) {
-                return b;
+            if (value instanceof Boolean) {
+                return (Boolean) value;
             }
             if (value == null) {
                 return defaultValue;
@@ -141,8 +142,8 @@ public final class AeroConfig {
         }
 
         private static int intVal(Object value, int defaultValue) {
-            if (value instanceof Number n) {
-                return n.intValue();
+            if (value instanceof Number) {
+                return ((Number) value).intValue();
             }
             if (value == null) {
                 return defaultValue;

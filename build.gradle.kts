@@ -22,6 +22,7 @@ subprojects {
 
     tasks.withType<JavaCompile>().configureEach {
         options.encoding = "UTF-8"
+        // Modules override via their own build.gradle.kts (8 / 16 / 21).
         options.release.set(21)
     }
 

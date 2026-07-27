@@ -1,5 +1,6 @@
 package com.aelion.aero.api;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -34,7 +35,9 @@ public final class FleetGroupSnapshot {
         this.maxPlayers = maxPlayers;
         this.memberCount = memberCount;
         this.liveStatus = liveStatus;
-        this.members = members == null ? List.of() : List.copyOf(members);
+        this.members = members == null
+                ? Collections.<FleetServerSnapshot>emptyList()
+                : Collections.unmodifiableList(new ArrayList<>(members));
     }
 
     public String id() {
