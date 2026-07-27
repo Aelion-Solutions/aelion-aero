@@ -6,7 +6,7 @@ package com.aelion.aero.common;
  */
 public final class AeroVersion {
 
-    public static final String VERSION = "0.1.0";
+    public static final String VERSION = "0.2.0"; // x-release-please-version
 
     private AeroVersion() {
     }

@@ -48,7 +48,12 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Build
-        run: bash ./gradlew build --no-daemon
+        run: |
+          VERSION="${TAG##*v}"
+          echo "Building with version=$VERSION"
+          bash ./gradlew build --no-daemon -Pversion="$VERSION"
+        env:
+          TAG: ${{ needs.release-please.outputs.tag_name }}
 
       - name: Resolve version
         id: version

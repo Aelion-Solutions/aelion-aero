@@ -44,6 +44,8 @@ Until the first release PR is merged, the manifest version is `0.1.0`. The first
 | File | Field |
 |------|--------|
 | `.github/release-please-manifest.json` | Manifest version |
-| `gradle.properties` | `version=` |
-| `aero-common/.../AeroVersion.java` | `VERSION` |
+| `gradle.properties` | `version=` (`# x-release-please-version`) |
+| `aero-common/.../AeroVersion.java` | `VERSION` (`// x-release-please-version`) |
 | `CHANGELOG.md` | Generated notes |
+
+Publish builds with `-Pversion=<tag>` so release JAR names always match the Git tag even if a file bump is missed.
