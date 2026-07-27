@@ -139,6 +139,7 @@ On deregister, players are moved to a remaining lobby/try, or disconnected if no
 - `GET /v1/backends` — last applied registry (proxies only)
 - `PUT /v1/backends` — full replace `{ "backends": [ { "name", "address", "role" } ] }` (proxies only)
 - `POST /v1/shutdown` — drain players + schedule platform shutdown; returns `202 { "ok": true }` (Paper + proxies)
+- `GET /v1/players` — `{ "players": [ { "uuid", "name" } ] }` online set; empty → `{ "players": [] }` (Paper + proxies)
 - `POST /v1/players/kick` — `{ "uuid", "message"? }` → `{ "ok": true }` / 404 offline (Paper + proxies)
 - `POST /v1/players/transfer` — `{ "uuid", "proxyServerName"? | "serverId"? | "serverName"? | "groupId"? | "groupName"? }` (Paper + proxies)
 - Header: `X-Aero-Control-Token: <control.token>`
@@ -156,6 +157,8 @@ Call `:id` where the player is online.
 # config: control.enabled=true, control.token=devsecret
 curl -s -H "X-Aero-Control-Token: devsecret" http://127.0.0.1:25580/v1/health
 
+curl -s -H "X-Aero-Control-Token: devsecret" http://127.0.0.1:25580/v1/players
+
 curl -s -X PUT http://127.0.0.1:25580/v1/backends \
   -H "X-Aero-Control-Token: devsecret" \
   -H "Content-Type: application/json" \
@@ -169,6 +172,7 @@ curl -s -X POST -H "X-Aero-Control-Token: devsecret" http://127.0.0.1:25580/v1/s
 Cloud daemon reads control port/token from `.aelion-aero.ae` and:
 
 - `PUT`s backends to `http://127.0.0.1:<port>/v1/backends` after proxy sync when the process is running
+- `GET`s `/v1/players` for online player uuid/name lists (Paper + proxies)
 - `POST`s `/v1/players/kick` and `/v1/players/transfer` for panel operator actions
 - On graceful stop: `POST /v1/shutdown`, brief wait, then stdin `stop`/`shutdown`/`end`, then force-kill
 

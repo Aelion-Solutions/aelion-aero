@@ -7,6 +7,8 @@ import com.aelion.aero.common.control.BackendRegistry;
 import com.aelion.aero.common.control.ControlHealthResponse;
 import com.aelion.aero.common.control.ControlKickRequest;
 import com.aelion.aero.common.control.ControlPlayerActionResponse;
+import com.aelion.aero.common.control.ControlPlayerEntry;
+import com.aelion.aero.common.control.ControlPlayersResponse;
 import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
@@ -119,6 +121,17 @@ final class ControlHttpServer {
             scheduleGracefulShutdown();
         });
 
+        server.createContext(ControlApi.PLAYERS_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"GET".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            handleListPlayers(exchange);
+        });
+
         server.createContext(ControlApi.PLAYERS_KICK_PATH, exchange -> {
             if (!authorize(exchange, expectedToken)) {
                 return;
@@ -155,6 +168,16 @@ final class ControlHttpServer {
             server.stop(0);
             server = null;
         }
+    }
+
+    private void handleListPlayers(HttpExchange exchange) throws IOException {
+        List<ControlPlayerEntry> entries = new ArrayList<>();
+        for (Player player : proxy.getAllPlayers()) {
+            entries.add(new ControlPlayerEntry(
+                    player.getUniqueId().toString(),
+                    player.getUsername()));
+        }
+        sendJson(exchange, 200, ControlPlayersResponse.of(entries));
     }
 
     private void handleKick(HttpExchange exchange) throws IOException {
