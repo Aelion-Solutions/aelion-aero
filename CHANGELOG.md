@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.4.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.3.0...v0.4.0) (2026-07-27)
+
+
+### Features
+
+* add Paper 26 backend band ([c1a6596](https://github.com/Aelion-Solutions/aelion-aero/commit/c1a6596a85fcec8a6445af10d6478de9925d7b7f))
+* add Paper 26 backend band ([551e2ab](https://github.com/Aelion-Solutions/aelion-aero/commit/551e2aba36babe1befb7aba7b0c7660d55363ca0))
+* ship multi-version backend bands 1.8-1.21 ([10bb6c8](https://github.com/Aelion-Solutions/aelion-aero/commit/10bb6c85ab816a9326a0b7cdcdbb6800c8e3c82d))
+* ship multi-version backend bands 1.8-1.21 ([5f505df](https://github.com/Aelion-Solutions/aelion-aero/commit/5f505dfc92d2210c2cce7c9161702d6efdef45bd))
+
+
+### Bug Fixes
+
+* **ci:** install JDK 25 for paper-26 builds ([6162013](https://github.com/Aelion-Solutions/aelion-aero/commit/6162013be140a5467f0d2989fa78b29c522b52b2))
+* **ci:** install JDK 25 for paper-26 builds ([432710d](https://github.com/Aelion-Solutions/aelion-aero/commit/432710d9c8b47bc2ae1f269fb0decf7b5c4a6b4e))
+
 ## [0.3.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.2.1...v0.3.0) (2026-07-27)
 
 
