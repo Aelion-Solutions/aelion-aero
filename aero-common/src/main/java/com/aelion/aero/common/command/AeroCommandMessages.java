@@ -4,6 +4,7 @@ import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.AeroVersion;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
+import com.aelion.aero.common.util.Strings;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -78,7 +79,7 @@ public final class AeroCommandMessages {
 
     public static String pingOk(boolean ok, String version) {
         StringBuilder sb = new StringBuilder("Panel health ok=").append(ok);
-        if (version != null && !version.isBlank()) {
+        if (Strings.isNotBlank(version)) {
             sb.append(" version=").append(version);
         }
         return AeroCommandStyle.success(sb.toString());
@@ -90,7 +91,7 @@ public final class AeroCommandMessages {
     }
 
     public static String pingHttpError(int statusCode, String bodySummary) {
-        String detail = bodySummary == null || bodySummary.isBlank()
+        String detail = Strings.isBlank(bodySummary)
                 ? ""
                 : " — " + truncate(bodySummary, 120);
         return AeroCommandStyle.error("Panel error HTTP " + statusCode + detail);
@@ -161,11 +162,11 @@ public final class AeroCommandMessages {
     }
 
     private static String nullToDash(String value) {
-        return value == null || value.isBlank() ? "-" : value;
+        return Strings.isBlank(value) ? "-" : value;
     }
 
     private static String nullToMessage(String detail) {
-        return detail == null || detail.isBlank() ? "unknown error" : detail;
+        return Strings.isBlank(detail) ? "unknown error" : detail;
     }
 
     private static String truncate(String body, int max) {

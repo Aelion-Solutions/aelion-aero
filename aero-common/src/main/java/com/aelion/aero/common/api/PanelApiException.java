@@ -1,5 +1,7 @@
 package com.aelion.aero.common.api;
 
+import com.aelion.aero.common.util.Strings;
+
 /**
  * Non-success HTTP response from the panel.
  */
@@ -9,7 +11,7 @@ public final class PanelApiException extends RuntimeException {
     private final String responseBody;
 
     public PanelApiException(int statusCode, String responseBody) {
-        super("Panel API error HTTP " + statusCode + (responseBody == null || responseBody.isBlank()
+        super("Panel API error HTTP " + statusCode + (Strings.isBlank(responseBody)
                 ? ""
                 : ": " + truncate(responseBody)));
         this.statusCode = statusCode;

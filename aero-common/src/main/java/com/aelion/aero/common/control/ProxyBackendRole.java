@@ -2,6 +2,7 @@ package com.aelion.aero.common.control;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonValue;
+import com.aelion.aero.common.util.Strings;
 import java.util.Locale;
 
 /**
@@ -25,7 +26,7 @@ public enum ProxyBackendRole {
 
     @JsonCreator
     public static ProxyBackendRole fromWire(String value) {
-        if (value == null || value.isBlank()) {
+        if (Strings.isBlank(value)) {
             return BACKEND;
         }
         String normalized = value.trim().toLowerCase(Locale.ROOT);

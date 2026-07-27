@@ -167,7 +167,7 @@ class AeroCommandServiceTest {
 
         @Override
         public List<BackendEntry> backendsSnapshot() {
-            return List.copyOf(backends);
+            return new ArrayList<>(backends);
         }
     }
 }

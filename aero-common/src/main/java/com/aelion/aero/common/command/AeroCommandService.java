@@ -10,10 +10,13 @@ import com.aelion.aero.common.api.PanelNotConfiguredException;
 import com.aelion.aero.common.api.ServerInfoResponse;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
+import com.aelion.aero.common.util.Strings;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -43,7 +46,7 @@ public final class AeroCommandService {
 
         /** Live proxy backends; empty on non-proxy platforms. */
         default List<BackendEntry> backendsSnapshot() {
-            return List.of();
+            return Collections.emptyList();
         }
     }
 
@@ -53,15 +56,17 @@ public final class AeroCommandService {
     public static void execute(String[] args, Platform platform) {
         String sub = args.length == 0 ? "help" : args[0].toLowerCase(Locale.ROOT);
         switch (sub) {
-            case "help" -> platform.sendAll(AeroCommandMessages.help(platform.isProxy()));
-            case "info" -> {
+            case "help":
+                platform.sendAll(AeroCommandMessages.help(platform.isProxy()));
+                break;
+            case "info":
                 if (!platform.hasPermission(Permissions.INFO)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
                 }
                 platform.sendAll(AeroCommandMessages.info(platform.config()));
-            }
-            case "reload" -> {
+                break;
+            case "reload":
                 if (!platform.hasPermission(Permissions.ADMIN)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
@@ -72,36 +77,38 @@ public final class AeroCommandService {
                 } catch (Exception e) {
                     platform.send(AeroCommandMessages.reloadFailed(e.getMessage()));
                 }
-            }
-            case "ping" -> {
+                break;
+            case "ping":
                 if (!platform.hasPermission(Permissions.INFO)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
                 }
                 ping(platform);
-            }
-            case "servers" -> {
+                break;
+            case "servers":
                 if (!platform.hasPermission(Permissions.INFO)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
                 }
                 servers(platform, args);
-            }
-            case "backends" -> {
+                break;
+            case "backends":
                 if (!platform.hasPermission(Permissions.INFO)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
                 }
                 backends(platform, args);
-            }
-            case "create-server" -> {
+                break;
+            case "create-server":
                 if (!platform.hasPermission(Permissions.CREATE)) {
                     platform.send(AeroCommandMessages.noPermission());
                     return;
                 }
                 createServer(platform, args);
-            }
-            default -> platform.send(AeroCommandMessages.unknownSubcommand(sub));
+                break;
+            default:
+                platform.send(AeroCommandMessages.unknownSubcommand(sub));
+                break;
         }
     }
 
@@ -116,23 +123,23 @@ public final class AeroCommandService {
             if (proxy) {
                 roots = Stream.concat(roots, Stream.of("backends", "create-server"));
             }
-            return roots.filter(s -> s.startsWith(prefix)).toList();
+            return roots.filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
             if ("servers".equals(sub)) {
-                return Stream.of("list").filter(s -> s.startsWith(prefix)).toList();
+                return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
             if (proxy && "backends".equals(sub)) {
-                return Stream.of("list").filter(s -> s.startsWith(prefix)).toList();
+                return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
         }
         if (args.length == 3 && "servers".equals(sub) && "list".equalsIgnoreCase(args[1])) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
-            return Stream.of("--names").filter(s -> s.startsWith(prefix)).toList();
+            return Stream.of("--names").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
-        return List.of();
+        return Collections.emptyList();
     }
 
     private static void ping(Platform platform) {
@@ -188,20 +195,22 @@ public final class AeroCommandService {
         }
 
         platform.send(AeroCommandStyle.info("Loading servers…"));
-        boolean names = namesOnly;
+        final boolean names = namesOnly;
         platform.runAsync(() -> {
             List<String> lines;
             try {
                 List<ServerInfoResponse> servers = new HttpPanelClient(platform.config()).listServers();
                 lines = AeroCommandMessages.formatServerList(servers, names);
             } catch (PanelNotConfiguredException e) {
-                lines = List.of(AeroCommandMessages.panelNotConfigured());
+                lines = Collections.singletonList(AeroCommandMessages.panelNotConfigured());
             } catch (PanelApiException e) {
-                lines = List.of(AeroCommandMessages.pingHttpError(e.statusCode(), e.responseBody()));
+                lines = Collections.singletonList(
+                        AeroCommandMessages.pingHttpError(e.statusCode(), e.responseBody()));
             } catch (RuntimeException e) {
-                lines = List.of(AeroCommandStyle.error("List failed: " + e.getMessage()));
+                lines = Collections.singletonList(
+                        AeroCommandStyle.error("List failed: " + e.getMessage()));
             }
-            List<String> out = lines;
+            final List<String> out = lines;
             platform.runSync(() -> platform.sendAll(out));
         });
     }
@@ -213,7 +222,7 @@ public final class AeroCommandService {
         }
         if (args.length >= 2
                 && !"list".equalsIgnoreCase(args[1])
-                && !args[1].isBlank()) {
+                && !Strings.isBlank(args[1])) {
             platform.send(AeroCommandStyle.warn(
                     "Usage: /ae backends [list]"));
             return;
@@ -233,14 +242,14 @@ public final class AeroCommandService {
         String software = kv.get("software");
         String version = kv.get("version");
 
-        if (name == null || name.isBlank()) {
+        if (Strings.isBlank(name)) {
             platform.send(AeroCommandMessages.createUsageServer());
             return;
         }
 
-        boolean hasTemplate = template != null && !template.isBlank();
-        boolean hasSoftware = software != null && !software.isBlank();
-        boolean hasVersion = version != null && !version.isBlank();
+        boolean hasTemplate = Strings.isNotBlank(template);
+        boolean hasSoftware = Strings.isNotBlank(software);
+        boolean hasVersion = Strings.isNotBlank(version);
 
         if (hasTemplate && (hasSoftware || hasVersion)) {
             platform.send(AeroCommandStyle.error("Use either template= OR software=+version=, not both."));
@@ -304,7 +313,7 @@ public final class AeroCommandService {
             } catch (RuntimeException e) {
                 result = AeroCommandStyle.error("Create failed: " + e.getMessage());
             }
-            String message = result;
+            final String message = result;
             platform.runSync(() -> platform.send(message));
         });
     }
@@ -324,10 +333,10 @@ public final class AeroCommandService {
     }
 
     private static String firstNonBlank(String a, String b) {
-        if (a != null && !a.isBlank()) {
+        if (Strings.isNotBlank(a)) {
             return a;
         }
-        if (b != null && !b.isBlank()) {
+        if (Strings.isNotBlank(b)) {
             return b;
         }
         return null;
@@ -350,6 +359,6 @@ public final class AeroCommandService {
     }
 
     private static String nullToDash(String value) {
-        return value == null || value.isBlank() ? "-" : value;
+        return Strings.isBlank(value) ? "-" : value;
     }
 }
