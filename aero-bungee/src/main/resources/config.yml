@@ -1,0 +1,11 @@
+# Aelion Aero — injected by Aelion Cloud at provision time.
+panel-url: ""
+server-id: ""
+token: ""
+
+# Daemon localhost bridge for live proxy backend sync.
+control:
+  enabled: false
+  bind: "127.0.0.1"
+  port: 25580
+  token: ""

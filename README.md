@@ -1,6 +1,7 @@
 # Aelion Aero
 
-Paper and Velocity plugins that connect Minecraft servers to [Aelion Cloud](https://github.com/Aelion-Solutions/aelion-cloud).
+Paper, Velocity, and BungeeCord/Waterfall plugins that connect Minecraft to
+[Aelion Cloud](https://github.com/Aelion-Solutions/aelion-cloud).
 
 Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/issues/308)
 
@@ -8,8 +9,10 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 
 - `/ae` and `/aec`: `help`, `info`, `reload`, `ping`
 - Shared panel client + server/group **create** DTOs in `aero-common` (panel routes not live yet)
-- Velocity **localhost control API** for live backend registry (`PUT /v1/backends`)
-- Cloud wiring documented in [docs/CLOUD_INTEGRATION.md](docs/CLOUD_INTEGRATION.md) (no cloud code in this repo yet)
+- Proxy **live backend registry**: empty on-disk server maps; process memory via `PUT /v1/backends`
+- Live join routing (Velocity `PlayerChooseInitialServerEvent` / Bungee `ServerConnectEvent`)
+- On backend deregister: move players to a lobby/try target, or disconnect if none
+- Cloud wiring documented in [docs/CLOUD_INTEGRATION.md](docs/CLOUD_INTEGRATION.md)
 
 ## Modules
 
@@ -18,6 +21,7 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 | `aero-common` | (library) | Config, control DTOs, panel client, create models |
 | `aero-paper` | `aero-paper-<version>.jar` | Paper 1.21.x |
 | `aero-velocity` | `aero-velocity-<version>.jar` | Velocity 3.4.x |
+| `aero-bungee` | `aero-bungee-<version>.jar` | BungeeCord / Waterfall |
 
 ## Requirements
 
@@ -34,6 +38,7 @@ Plugin JARs:
 
 - `aero-paper/build/libs/aero-paper-<version>.jar`
 - `aero-velocity/build/libs/aero-velocity-<version>.jar`
+- `aero-bungee/build/libs/aero-bungee-<version>.jar`
 
 ## Install (today)
 

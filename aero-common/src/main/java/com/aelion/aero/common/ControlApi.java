@@ -1,7 +1,7 @@
 package com.aelion.aero.common;
 
 /**
- * Localhost control API contract (daemon → Velocity plugin).
+ * Localhost control API contract (daemon → proxy Aero plugin).
  */
 public final class ControlApi {
 

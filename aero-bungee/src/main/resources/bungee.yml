@@ -1,0 +1,20 @@
+name: AelionAero
+main: com.aelion.aero.bungee.AeroBungeePlugin
+version: ${version}
+author: Aelion Solutions
+description: Connects this BungeeCord/Waterfall proxy to Aelion Cloud
+commands:
+  ae:
+    description: Aelion Aero commands
+    aliases: [aec]
+    permission: aelion.aero.info
+permissions:
+  aelion.aero.info:
+    description: Use /ae help, info, ping
+    default: true
+  aelion.aero.admin:
+    description: Reload Aero config
+    default: op
+  aelion.aero.create:
+    description: Reserved for future create commands
+    default: op
