@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.2](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.1...v0.6.2) (2026-07-27)
+
+
+### Features
+
+* **proxy:** add /ae notify via fleet push ([375f38d](https://github.com/Aelion-Solutions/aelion-aero/commit/375f38dfa73dd4e63bafd15e71fe2f062cbc7356))
+* **proxy:** add /ae notify via fleet push ([ef8d480](https://github.com/Aelion-Solutions/aelion-aero/commit/ef8d480eb37cb9f6bb99b57223b0aa62da9ce74a))
+
+
+### Bug Fixes
+
+* **proxy:** wire notify before control API ([a21236c](https://github.com/Aelion-Solutions/aelion-aero/commit/a21236c25dbe538a10f290d93a3bdefbe491b96b))
+
 ## [0.6.1](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.0...v0.6.1) (2026-07-27)
 
 
