@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.5.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.4.0...v0.5.0) (2026-07-27)
+
+
+### Features
+
+* **release:** attach aero-compat.yml to GitHub Releases ([448e425](https://github.com/Aelion-Solutions/aelion-aero/commit/448e425bd783e5cdacbe41cbb971fa55f810f29c))
+* **release:** attach aero-compat.yml to GitHub Releases ([1e1346d](https://github.com/Aelion-Solutions/aelion-aero/commit/1e1346d6da799543cf72b8ef3c47f0d5baf68c64))
+
 ## [0.4.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.3.0...v0.4.0) (2026-07-27)
 
 
