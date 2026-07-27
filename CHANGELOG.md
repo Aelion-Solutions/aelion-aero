@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.6.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.5.0...v0.6.0) (2026-07-27)
+
+
+### Features
+
+* split proxy/backend cmds and allow insecure panel TLS ([9b2d423](https://github.com/Aelion-Solutions/aelion-aero/commit/9b2d423fb27ea16f464c0e3f020b08b6cb3c469c))
+* split proxy/backend commands and allow insecure panel TLS ([dcbc758](https://github.com/Aelion-Solutions/aelion-aero/commit/dcbc7586b20023a561cecf0343d5d724605aac6f))
+
+
+### Bug Fixes
+
+* drop Brigadier catch-all subcommand arg ([f48f8b0](https://github.com/Aelion-Solutions/aelion-aero/commit/f48f8b0c36e7d716507ff99e9b4804e63883461f))
+* restore Brigadier fallback for styled Aero errors ([9364067](https://github.com/Aelion-Solutions/aelion-aero/commit/93640673a54b1330fe7888ec7b20f698f8803dfe))
+
 ## [0.5.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.4.0...v0.5.0) (2026-07-27)
 
 
