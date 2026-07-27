@@ -109,6 +109,35 @@ class AeroCommandServiceTest {
     }
 
     @Test
+    void helpIncludesKickAndTransfer() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        AeroCommandService.execute(new String[] {"help"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("kick")));
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("transfer")));
+    }
+
+    @Test
+    void kickRequiresPlayerArg() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        AeroCommandService.execute(new String[] {"kick"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("Usage") && l.contains("kick")));
+    }
+
+    @Test
+    void transferRequiresXorTarget() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        AeroCommandService.execute(new String[] {"transfer", "Steve"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("Usage") && l.contains("transfer")));
+    }
+
+    @Test
+    void tabCompleteIncludesKickTransfer() {
+        List<String> paper = AeroCommandService.tabComplete(new String[] {""}, false);
+        assertTrue(paper.contains("kick"));
+        assertTrue(paper.contains("transfer"));
+    }
+
+    @Test
     void tabCompleteProxyIncludesCreate() {
         List<String> paper = AeroCommandService.tabComplete(new String[] {""}, false);
         List<String> proxy = AeroCommandService.tabComplete(new String[] {""}, true);

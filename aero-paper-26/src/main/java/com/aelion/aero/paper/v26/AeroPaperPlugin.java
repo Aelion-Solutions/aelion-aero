@@ -159,6 +159,45 @@ public final class AeroPaperPlugin extends JavaPlugin {
         public void reloadConfig() throws Exception {
             bootstrap.reloadAeroConfig();
         }
+
+        @Override
+        public boolean kickPlayer(String playerName, String message) {
+            AeroFleetService fleet = fleetService();
+            if (fleet == null || playerName == null || playerName.isBlank()) {
+                return false;
+            }
+            org.bukkit.entity.Player player = getServer().getPlayerExact(playerName.trim());
+            if (player == null || !player.isOnline()) {
+                return false;
+            }
+            return fleet.kickPlayer(player.getUniqueId(), message);
+        }
+
+        @Override
+        public boolean transferPlayer(String playerName, String serverKey, String groupKey) {
+            AeroFleetService fleet = fleetService();
+            if (fleet == null || playerName == null || playerName.isBlank()) {
+                return false;
+            }
+            org.bukkit.entity.Player player = getServer().getPlayerExact(playerName.trim());
+            if (player == null || !player.isOnline()) {
+                return false;
+            }
+            if (serverKey != null && !serverKey.isBlank()) {
+                return fleet.transferToServer(player.getUniqueId(), serverKey);
+            }
+            if (groupKey != null && !groupKey.isBlank()) {
+                return fleet.transferToGroup(player.getUniqueId(), groupKey);
+            }
+            return false;
+        }
+
+        @Override
+        public List<String> onlinePlayerNames() {
+            return getServer().getOnlinePlayers().stream()
+                    .map(org.bukkit.entity.Player::getName)
+                    .toList();
+        }
     }
 }
 

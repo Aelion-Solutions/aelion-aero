@@ -3,6 +3,7 @@ package com.aelion.aero.bukkit;
 import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.config.AeroConfigLoader;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
@@ -16,7 +17,7 @@ public final class BukkitAeroBootstrap {
 
     private final JavaPlugin plugin;
     private final AtomicReference<AeroConfig> configRef =
-            new AtomicReference<>(new AeroConfig("", "", "", AeroConfig.ControlConfig.disabled()));
+            new AtomicReference<>(AeroConfig.empty());
     private BukkitFleetService fleetService;
     private BukkitControlHttpServer controlHttpServer;
 
@@ -37,7 +38,6 @@ public final class BukkitAeroBootstrap {
     }
 
     public void enableWithClassicCommands() {
-        plugin.saveDefaultConfig();
         if (!loadConfigOrShutdown()) {
             return;
         }
@@ -52,7 +52,8 @@ public final class BukkitAeroBootstrap {
         BukkitAeroCommandExecutor executor = new BukkitAeroCommandExecutor(
                 plugin,
                 this::config,
-                this::reloadAeroConfig);
+                this::reloadAeroConfig,
+                fleetService);
         BukkitAeroCommandExecutor.register(
                 plugin,
                 executor,
@@ -65,7 +66,6 @@ public final class BukkitAeroBootstrap {
      * Fleet + config only — caller registers Brigadier (or other) commands.
      */
     public void enableFleetOnly() {
-        plugin.saveDefaultConfig();
         if (!loadConfigOrShutdown()) {
             return;
         }
@@ -115,21 +115,32 @@ public final class BukkitAeroBootstrap {
     }
 
     public void reloadAeroConfig() throws IOException {
-        plugin.reloadConfig();
-        configRef.set(BukkitConfigBridge.fromBukkit(plugin.getConfig()));
+        try {
+            configRef.set(AeroConfigLoader.loadDataDirectory(
+                    plugin.getDataFolder().toPath(),
+                    plugin.getClass().getClassLoader(),
+                    msg -> plugin.getLogger().info(msg)));
+            // Keep Bukkit's FileConfiguration in sync for any callers of getConfig().
+            plugin.reloadConfig();
+        } catch (Exception e) {
+            plugin.getLogger().log(Level.SEVERE, "Failed to load Aero config: " + e.getMessage(), e);
+            configRef.set(BukkitConfigBridge.fromBukkitMerged(
+                    plugin.getDataFolder().toPath(),
+                    plugin.getConfig()));
+        }
         restartControlServer();
     }
 
     /**
      * (Re)starts the loopback control HTTP server. Rethrows the underlying
      * {@link IOException} when {@code control.enabled=true} and the listener
-     * cannot bind, so callers can surface the failure to admins ({@code /aero
+     * cannot bind, so callers can surface the failure to admins ({@code /aes
      * reload}) or shut the server down on initial enable rather than silently
      * running without a shutdown endpoint the daemon depends on.
      */
     private void restartControlServer() throws IOException {
         if (controlHttpServer == null) {
-            controlHttpServer = new BukkitControlHttpServer(plugin);
+            controlHttpServer = new BukkitControlHttpServer(plugin, configRef, this::fleetService);
         }
         try {
             controlHttpServer.start(config().control());

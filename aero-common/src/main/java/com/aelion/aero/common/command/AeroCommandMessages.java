@@ -25,6 +25,9 @@ public final class AeroCommandMessages {
         lines.add(AeroCommandStyle.info("/" + cmd + " reload §8— §7reload config"));
         lines.add(AeroCommandStyle.info("/" + cmd + " ping §8— §7ping the Aelion Cloud panel"));
         lines.add(AeroCommandStyle.info("/" + cmd + " servers list [--names] §8— §7list panel servers"));
+        lines.add(AeroCommandStyle.info("/" + cmd + " kick <player> [message…] §8— §7kick a player"));
+        lines.add(AeroCommandStyle.info(
+                "/" + cmd + " transfer <player> server=<id|name>|group=<id|name> §8— §7move a player"));
         if (proxy) {
             lines.add(AeroCommandStyle.info("/" + cmd + " backends §8— §7list live proxy backends"));
             lines.add(AeroCommandStyle.info(
@@ -77,7 +80,7 @@ public final class AeroCommandMessages {
 
     public static String panelNotConfigured() {
         return AeroCommandStyle.warn(
-                "Panel not configured. Set §fpanel-url§e, §fserver-id§e, and §ftoken§e in config.yml.");
+                "Panel not configured. Set §fpanelUrl§e, §fserverId§e, and §ftoken§e in §faero.ae§e.");
     }
 
     public static String pingOk(boolean ok, String version) {
@@ -118,6 +121,36 @@ public final class AeroCommandMessages {
     public static String serversUsage(boolean proxy) {
         return AeroCommandStyle.warn(
                 "Usage: /" + AeroConstants.commandRoot(proxy) + " servers list [--names]");
+    }
+
+    public static String kickUsage(boolean proxy) {
+        return AeroCommandStyle.warn(
+                "Usage: /" + AeroConstants.commandRoot(proxy) + " kick <player> [message…]");
+    }
+
+    public static String transferUsage(boolean proxy) {
+        return AeroCommandStyle.warn(
+                "Usage: /" + AeroConstants.commandRoot(proxy)
+                        + " transfer <player> server=<id|name> | group=<id|name>");
+    }
+
+    public static String kickOk(String playerName) {
+        return AeroCommandStyle.success("Kicked §f" + nullToDash(playerName) + "§a.");
+    }
+
+    public static String playerOffline(String playerName) {
+        return AeroCommandStyle.error("Player §f" + nullToDash(playerName) + "§c is not online.");
+    }
+
+    public static String transferOk(String playerName, String target) {
+        return AeroCommandStyle.success(
+                "Transferring §f" + nullToDash(playerName) + "§a → §f" + nullToDash(target) + "§a.");
+    }
+
+    public static String transferFailed(String playerName) {
+        return AeroCommandStyle.error(
+                "Transfer failed for §f" + nullToDash(playerName)
+                        + "§c (offline, unknown target, or Connect failed).");
     }
 
     public static String backendsUsage() {

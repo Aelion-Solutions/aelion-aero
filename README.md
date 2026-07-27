@@ -8,7 +8,7 @@ Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/iss
 ## Status (phase 2)
 
 - Proxy `/ae` (+ `/aec`): `help`, `info`, `reload`, `ping`, `servers list`, plus `backends` and `create-server`
-- Backend `/aes`: `help`, `info`, `reload`, `ping`, `servers list` (Paper 1.21+ uses Brigadier; older bands use classic commands; styled `[Aero]` prefix + colors)
+- Backend `/aes`: `help`, `info`, `reload`, `ping`, `servers list`, `kick`, `transfer` (Paper 1.21+ uses Brigadier; older bands use classic commands; styled `[Aero]` prefix + colors)
 - Shared panel client + create DTOs in `aero-common` (Java 8 bytecode)
 - Multi-version **backend bands** from MC 1.8 through 1.21+ — see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
 - Proxy **live backend registry**: empty on-disk server maps; process memory via `PUT /v1/backends`
@@ -65,21 +65,32 @@ Manual only:
 2. Drop the JAR into the server/proxy `plugins/` folder (or an Aelion Cloud template).
 3. Restart the process.
 
-Default config:
+Default config is split into two files:
+
+**`config.yml`** (template-safe — no secrets):
 
 ```yaml
-panel-url: ""
-server-id: ""
-token: ""
-panel-insecure-ssl: false
-control:
-  enabled: false
-  bind: "127.0.0.1"
-  port: 25580
-  token: ""
+config-version: 1
 ```
 
-On Velocity, set `control.enabled: true` and a `control.token` to accept daemon (or curl) backend updates on loopback.
+**`aero.ae`** (identity — injected by Aelion Cloud, or create manually):
+
+```json
+{
+  "panelUrl": "https://panel.example.com",
+  "serverId": "cms_...",
+  "token": "<server-scoped-token>",
+  "panelInsecureSsl": false,
+  "control": {
+    "enabled": true,
+    "bind": "127.0.0.1",
+    "port": 25580,
+    "token": "<control-token>"
+  }
+}
+```
+
+On Velocity/Bungee, set `control.enabled` and `control.token` in `aero.ae` to accept daemon (or curl) backend updates on loopback. For local panels with self-signed TLS, set `panelInsecureSsl: true` (cloud setting `aero.panelInsecureSsl` when injected).
 
 ## Commands
 
@@ -92,6 +103,8 @@ On Velocity, set `control.enabled: true` and a `control.token` to accept daemon 
 | `/ae reload` or `/aes reload` | `aelion.aero.admin` | Reload config (+ restart control API on Velocity) |
 | `/ae ping` or `/aes ping` | info | Hit panel health/info |
 | `/ae servers list [--names]` or `/aes …` | info | Panel fleet for same owner |
+| `/ae kick <player> [message…]` or `/aes …` | `aelion.aero.admin` | Kick online player |
+| `/ae transfer <player> server=\|group=` or `/aes …` | `aelion.aero.admin` | Transfer via fleet / proxy switch |
 | `/ae backends` | info | Live proxy backends (Velocity/Bungee only) |
 | `/ae create-server …` | `aelion.aero.create` | Proxy only; `template=` XOR `software=`+`version=` |
 

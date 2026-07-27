@@ -7,15 +7,48 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.function.Consumer;
 
 /**
- * Loads {@link AeroConfig} from YAML (Velocity data dir / shared tests).
+ * Loads {@link AeroConfig} from operator {@code config.yml} + identity {@code aero.ae}.
  */
 public final class AeroConfigLoader {
 
     private static final ObjectMapper YAML = new ObjectMapper(new YAMLFactory());
 
     private AeroConfigLoader() {
+    }
+
+    /**
+     * Migrate operator config if needed, then merge {@code config.yml} + {@code aero.ae}.
+     */
+    public static AeroConfig loadDataDirectory(
+            Path dataDirectory,
+            ClassLoader classLoader,
+            Consumer<String> logInfo
+    ) throws IOException {
+        ConfigMigrator.ensureOperatorConfig(dataDirectory, classLoader, "config.yml", logInfo);
+        return loadMerged(dataDirectory);
+    }
+
+    /**
+     * Load without migration (tests / already-prepared dirs).
+     */
+    public static AeroConfig loadMerged(Path dataDirectory) throws IOException {
+        Path configPath = dataDirectory.resolve("config.yml");
+        Path identityPath = AeroIdentity.pathIn(dataDirectory);
+
+        AeroConfig fromYaml = AeroConfig.empty();
+        if (Files.isRegularFile(configPath)) {
+            fromYaml = loadYaml(configPath);
+        }
+
+        if (Files.isRegularFile(identityPath)) {
+            AeroIdentity identity = AeroIdentity.load(identityPath);
+            return identity.applyOnto(fromYaml);
+        }
+        // Legacy: identity still in config.yml
+        return fromYaml;
     }
 
     @SuppressWarnings("unchecked")

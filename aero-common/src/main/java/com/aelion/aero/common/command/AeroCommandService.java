@@ -48,6 +48,29 @@ public final class AeroCommandService {
         default List<BackendEntry> backendsSnapshot() {
             return Collections.emptyList();
         }
+
+        /**
+         * Kick an online player by exact name. Blank message → platform default reason.
+         *
+         * @return {@code true} if the player was online and kicked
+         */
+        default boolean kickPlayer(String playerName, String message) {
+            return false;
+        }
+
+        /**
+         * Transfer an online player. Exactly one of {@code serverKey}/{@code groupKey} is set.
+         *
+         * @return {@code true} if transfer was initiated
+         */
+        default boolean transferPlayer(String playerName, String serverKey, String groupKey) {
+            return false;
+        }
+
+        /** Online player names for tab-complete (prefix-filtered by caller). */
+        default List<String> onlinePlayerNames() {
+            return Collections.emptyList();
+        }
     }
 
     private AeroCommandService() {
@@ -106,6 +129,20 @@ public final class AeroCommandService {
                 }
                 createServer(platform, args);
                 break;
+            case "kick":
+                if (!platform.hasPermission(Permissions.ADMIN)) {
+                    platform.send(AeroCommandMessages.noPermission());
+                    return;
+                }
+                kick(platform, args);
+                break;
+            case "transfer":
+                if (!platform.hasPermission(Permissions.ADMIN)) {
+                    platform.send(AeroCommandMessages.noPermission());
+                    return;
+                }
+                transfer(platform, args);
+                break;
             default:
                 platform.send(AeroCommandMessages.unknownSubcommand(sub, platform.isProxy()));
                 break;
@@ -117,9 +154,14 @@ public final class AeroCommandService {
     }
 
     public static List<String> tabComplete(String[] args, boolean proxy) {
+        return tabComplete(args, proxy, Collections.emptyList());
+    }
+
+    public static List<String> tabComplete(String[] args, boolean proxy, List<String> onlinePlayers) {
         if (args.length <= 1) {
             String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            Stream<String> roots = Stream.of("help", "info", "reload", "ping", "servers");
+            Stream<String> roots = Stream.of(
+                    "help", "info", "reload", "ping", "servers", "kick", "transfer");
             if (proxy) {
                 roots = Stream.concat(roots, Stream.of("backends", "create-server"));
             }
@@ -134,12 +176,77 @@ public final class AeroCommandService {
             if (proxy && "backends".equals(sub)) {
                 return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
+            if ("kick".equals(sub) || "transfer".equals(sub)) {
+                List<String> names = onlinePlayers == null ? Collections.emptyList() : onlinePlayers;
+                return names.stream()
+                        .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(prefix))
+                        .collect(Collectors.toList());
+            }
         }
         if (args.length == 3 && "servers".equals(sub) && "list".equalsIgnoreCase(args[1])) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
             return Stream.of("--names").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
+        if (args.length >= 3 && "transfer".equals(sub)) {
+            String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
+            return Stream.of("server=", "group=")
+                    .filter(s -> s.startsWith(prefix))
+                    .collect(Collectors.toList());
+        }
         return Collections.emptyList();
+    }
+
+    private static void kick(Platform platform, String[] args) {
+        if (args.length < 2 || Strings.isBlank(args[1])) {
+            platform.send(AeroCommandMessages.kickUsage(platform.isProxy()));
+            return;
+        }
+        String playerName = args[1].trim();
+        String message = args.length > 2
+                ? String.join(" ", java.util.Arrays.copyOfRange(args, 2, args.length))
+                : "";
+        boolean ok = platform.kickPlayer(playerName, message);
+        if (ok) {
+            platform.send(AeroCommandMessages.kickOk(playerName));
+        } else {
+            platform.send(AeroCommandMessages.playerOffline(playerName));
+        }
+    }
+
+    private static void transfer(Platform platform, String[] args) {
+        if (args.length < 3) {
+            platform.send(AeroCommandMessages.transferUsage(platform.isProxy()));
+            return;
+        }
+        String playerName = args[1].trim();
+        Map<String, String> kv = parseKeyValues(args, 2);
+        String serverKey = firstNonBlank(kv.get("server"), kv.get("serverid"), kv.get("servername"));
+        String groupKey = firstNonBlank(kv.get("group"), kv.get("groupid"), kv.get("groupname"));
+        boolean hasServer = Strings.isNotBlank(serverKey);
+        boolean hasGroup = Strings.isNotBlank(groupKey);
+        if (hasServer == hasGroup) {
+            platform.send(AeroCommandMessages.transferUsage(platform.isProxy()));
+            return;
+        }
+        boolean ok = platform.transferPlayer(playerName, hasServer ? serverKey : null, hasGroup ? groupKey : null);
+        if (ok) {
+            platform.send(AeroCommandMessages.transferOk(playerName, hasServer ? serverKey : groupKey));
+        } else {
+            platform.send(AeroCommandMessages.transferFailed(playerName));
+        }
+    }
+
+    private static String firstNonBlank(String a, String b, String c) {
+        if (Strings.isNotBlank(a)) {
+            return a;
+        }
+        if (Strings.isNotBlank(b)) {
+            return b;
+        }
+        if (Strings.isNotBlank(c)) {
+            return c;
+        }
+        return null;
     }
 
     private static void ping(Platform platform) {

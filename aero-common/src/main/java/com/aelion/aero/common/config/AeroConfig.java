@@ -35,6 +35,10 @@ public final class AeroConfig {
         this.control = control == null ? ControlConfig.disabled() : control;
     }
 
+    public static AeroConfig empty() {
+        return new AeroConfig("", "", "", false, ControlConfig.disabled());
+    }
+
     public String panelUrl() {
         return panelUrl;
     }

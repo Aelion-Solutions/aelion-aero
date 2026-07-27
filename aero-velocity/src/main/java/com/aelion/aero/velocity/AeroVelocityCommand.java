@@ -5,9 +5,19 @@ import com.aelion.aero.common.Permissions;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
+import com.aelion.aero.common.control.ControlTransferRequest;
+import com.aelion.aero.common.control.ControlTransferResolver;
+import com.aelion.aero.common.util.Strings;
 import com.velocitypowered.api.command.SimpleCommand;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
+import java.util.stream.Collectors;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 
 final class AeroVelocityCommand implements SimpleCommand {
@@ -28,7 +38,10 @@ final class AeroVelocityCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
-        return AeroCommandService.tabComplete(invocation.arguments(), true);
+        List<String> names = plugin.proxy().getAllPlayers().stream()
+                .map(Player::getUsername)
+                .collect(Collectors.toList());
+        return AeroCommandService.tabComplete(invocation.arguments(), true, names);
     }
 
     @Override
@@ -107,6 +120,72 @@ final class AeroVelocityCommand implements SimpleCommand {
                 return List.of();
             }
             return registry.snapshot().validBackends();
+        }
+
+        @Override
+        public boolean kickPlayer(String playerName, String message) {
+            if (Strings.isBlank(playerName)) {
+                return false;
+            }
+            Optional<Player> player = plugin.proxy().getPlayer(playerName.trim());
+            if (!player.isPresent()) {
+                return false;
+            }
+            String reason = Strings.isBlank(message) ? "Kicked by Aelion Aero." : message;
+            player.get().disconnect(Component.text(reason));
+            return true;
+        }
+
+        @Override
+        public boolean transferPlayer(String playerName, String serverKey, String groupKey) {
+            if (Strings.isBlank(playerName)) {
+                return false;
+            }
+            Optional<Player> player = plugin.proxy().getPlayer(playerName.trim());
+            if (!player.isPresent()) {
+                return false;
+            }
+            ControlTransferRequest req = new ControlTransferRequest();
+            req.setUuid(player.get().getUniqueId().toString());
+            if (Strings.isNotBlank(serverKey)) {
+                req.setServerId(serverKey);
+                req.setServerName(serverKey);
+            }
+            if (Strings.isNotBlank(groupKey)) {
+                req.setGroupId(groupKey);
+                req.setGroupName(groupKey);
+            }
+            List<String> registryNames = new ArrayList<>();
+            BackendRegistryService registry = plugin.registryService();
+            if (registry != null) {
+                for (BackendEntry entry : registry.snapshot().getBackends()) {
+                    if (entry != null && Strings.isNotBlank(entry.getName())) {
+                        registryNames.add(entry.getName());
+                    }
+                }
+            }
+            ControlTransferResolver.Result resolved = ControlTransferResolver.resolve(
+                    req,
+                    plugin.aeroConfig(),
+                    Collections.emptyList(),
+                    Collections.emptyList(),
+                    registryNames);
+            if (!resolved.isOk()) {
+                return false;
+            }
+            Optional<RegisteredServer> target = plugin.proxy().getServer(resolved.proxyServerName());
+            if (!target.isPresent()) {
+                return false;
+            }
+            player.get().createConnectionRequest(target.get()).fireAndForget();
+            return true;
+        }
+
+        @Override
+        public List<String> onlinePlayerNames() {
+            return plugin.proxy().getAllPlayers().stream()
+                    .map(Player::getUsername)
+                    .collect(Collectors.toList());
         }
     }
 }

@@ -2,19 +2,32 @@ package com.aelion.aero.velocity;
 
 import com.aelion.aero.common.ControlApi;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.BackendRegistry;
 import com.aelion.aero.common.control.ControlHealthResponse;
+import com.aelion.aero.common.control.ControlKickRequest;
+import com.aelion.aero.common.control.ControlPlayerActionResponse;
 import com.aelion.aero.common.control.ControlShutdownResponse;
+import com.aelion.aero.common.control.ControlTransferRequest;
+import com.aelion.aero.common.control.ControlTransferResolver;
 import com.aelion.aero.common.json.AeroJson;
+import com.aelion.aero.common.util.Strings;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpServer;
+import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
+import com.velocitypowered.api.proxy.server.RegisteredServer;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicBoolean;
 import net.kyori.adventure.text.Component;
@@ -27,7 +40,7 @@ final class ControlHttpServer {
 
     private final Logger logger;
     private final ProxyServer proxy;
-    private final Object plugin;
+    private final AeroVelocityPlugin plugin;
     private final BackendRegistryService registryService;
     private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
     private HttpServer server;
@@ -35,7 +48,7 @@ final class ControlHttpServer {
     ControlHttpServer(
             Logger logger,
             ProxyServer proxy,
-            Object plugin,
+            AeroVelocityPlugin plugin,
             BackendRegistryService registryService
     ) {
         this.logger = logger;
@@ -106,6 +119,28 @@ final class ControlHttpServer {
             scheduleGracefulShutdown();
         });
 
+        server.createContext(ControlApi.PLAYERS_KICK_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            handleKick(exchange);
+        });
+
+        server.createContext(ControlApi.PLAYERS_TRANSFER_PATH, exchange -> {
+            if (!authorize(exchange, expectedToken)) {
+                return;
+            }
+            if (!"POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                send(exchange, 405, "{\"error\":\"method not allowed\"}");
+                return;
+            }
+            handleTransfer(exchange);
+        });
+
         server.setExecutor(Executors.newCachedThreadPool(r -> {
             Thread t = new Thread(r, "aero-control");
             t.setDaemon(true);
@@ -119,6 +154,84 @@ final class ControlHttpServer {
         if (server != null) {
             server.stop(0);
             server = null;
+        }
+    }
+
+    private void handleKick(HttpExchange exchange) throws IOException {
+        ControlKickRequest req;
+        try (InputStream in = exchange.getRequestBody()) {
+            req = AeroJson.mapper().readValue(in, ControlKickRequest.class);
+        } catch (Exception e) {
+            send(exchange, 400, "{\"error\":\"invalid kick payload\"}");
+            return;
+        }
+        UUID uuid = parseUuid(req == null ? null : req.getUuid());
+        if (uuid == null) {
+            send(exchange, 400, "{\"error\":\"uuid is required\"}");
+            return;
+        }
+        Optional<Player> player = proxy.getPlayer(uuid);
+        if (!player.isPresent()) {
+            send(exchange, 404, "{\"error\":\"player offline\"}");
+            return;
+        }
+        String message = req.getMessage();
+        Component reason = Component.text(Strings.isBlank(message) ? "Kicked by Aelion Aero." : message);
+        player.get().disconnect(reason);
+        sendJson(exchange, 200, ControlPlayerActionResponse.ok());
+    }
+
+    private void handleTransfer(HttpExchange exchange) throws IOException {
+        ControlTransferRequest req;
+        try (InputStream in = exchange.getRequestBody()) {
+            req = AeroJson.mapper().readValue(in, ControlTransferRequest.class);
+        } catch (Exception e) {
+            send(exchange, 400, "{\"error\":\"invalid transfer payload\"}");
+            return;
+        }
+        UUID uuid = parseUuid(req == null ? null : req.getUuid());
+        if (uuid == null) {
+            send(exchange, 400, "{\"error\":\"uuid is required\"}");
+            return;
+        }
+        List<String> registryNames = new ArrayList<>();
+        for (BackendEntry entry : registryService.snapshot().getBackends()) {
+            if (entry != null && Strings.isNotBlank(entry.getName())) {
+                registryNames.add(entry.getName());
+            }
+        }
+        ControlTransferResolver.Result resolved = ControlTransferResolver.resolve(
+                req,
+                plugin.aeroConfig(),
+                Collections.emptyList(),
+                Collections.emptyList(),
+                registryNames);
+        if (!resolved.isOk()) {
+            send(exchange, 400, "{\"error\":" + AeroJson.mapper().writeValueAsString(resolved.error()) + "}");
+            return;
+        }
+        Optional<Player> player = proxy.getPlayer(uuid);
+        if (!player.isPresent()) {
+            send(exchange, 404, "{\"error\":\"player offline\"}");
+            return;
+        }
+        Optional<RegisteredServer> target = proxy.getServer(resolved.proxyServerName());
+        if (!target.isPresent()) {
+            send(exchange, 400, "{\"error\":\"backend not registered: " + resolved.proxyServerName() + "\"}");
+            return;
+        }
+        player.get().createConnectionRequest(target.get()).fireAndForget();
+        sendJson(exchange, 200, ControlPlayerActionResponse.ok());
+    }
+
+    private static UUID parseUuid(String raw) {
+        if (Strings.isBlank(raw)) {
+            return null;
+        }
+        try {
+            return UUID.fromString(raw.trim());
+        } catch (IllegalArgumentException e) {
+            return null;
         }
     }
 
