@@ -3,6 +3,7 @@ package com.aelion.aero.bukkit;
 import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.config.AeroConfig;
+import java.io.IOException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import org.bukkit.plugin.ServicePriority;
@@ -37,7 +38,9 @@ public final class BukkitAeroBootstrap {
 
     public void enableWithClassicCommands() {
         plugin.saveDefaultConfig();
-        reloadAeroConfig();
+        if (!loadConfigOrShutdown()) {
+            return;
+        }
         fleetService = new BukkitFleetService(plugin, configRef);
         fleetService.start();
         plugin.getServer().getServicesManager().register(
@@ -63,7 +66,9 @@ public final class BukkitAeroBootstrap {
      */
     public void enableFleetOnly() {
         plugin.saveDefaultConfig();
-        reloadAeroConfig();
+        if (!loadConfigOrShutdown()) {
+            return;
+        }
         fleetService = new BukkitFleetService(plugin, configRef);
         fleetService.start();
         plugin.getServer().getServicesManager().register(
@@ -72,6 +77,29 @@ public final class BukkitAeroBootstrap {
                 plugin,
                 ServicePriority.Normal);
         plugin.getLogger().info(AeroConstants.NAME + " enabled (fleet bridge registered)");
+    }
+
+    /**
+     * Loads config and starts the control server. If the control API is required
+     * (control.enabled=true) but fails to bind, shuts the Bukkit server down so
+     * the cloud daemon does not keep routing players into a backend that cannot
+     * be drained via {@code POST /v1/shutdown}. Returns {@code true} on success,
+     * {@code false} when server shutdown was requested.
+     */
+    private boolean loadConfigOrShutdown() {
+        try {
+            reloadAeroConfig();
+            return true;
+        } catch (IOException e) {
+            plugin.getLogger().log(
+                    Level.SEVERE,
+                    "Aero control API is required (control.enabled=true) but failed to start: "
+                            + e.getMessage()
+                            + " — shutting down server to avoid running without a daemon shutdown listener.",
+                    e);
+            plugin.getServer().shutdown();
+            return false;
+        }
     }
 
     public void disable() {
@@ -86,20 +114,28 @@ public final class BukkitAeroBootstrap {
         plugin.getLogger().info(AeroConstants.NAME + " disabled");
     }
 
-    public void reloadAeroConfig() {
+    public void reloadAeroConfig() throws IOException {
         plugin.reloadConfig();
         configRef.set(BukkitConfigBridge.fromBukkit(plugin.getConfig()));
         restartControlServer();
     }
 
-    private void restartControlServer() {
+    /**
+     * (Re)starts the loopback control HTTP server. Rethrows the underlying
+     * {@link IOException} when {@code control.enabled=true} and the listener
+     * cannot bind, so callers can surface the failure to admins ({@code /aero
+     * reload}) or shut the server down on initial enable rather than silently
+     * running without a shutdown endpoint the daemon depends on.
+     */
+    private void restartControlServer() throws IOException {
         if (controlHttpServer == null) {
             controlHttpServer = new BukkitControlHttpServer(plugin);
         }
         try {
             controlHttpServer.start(config().control());
-        } catch (Exception e) {
+        } catch (IOException e) {
             plugin.getLogger().log(Level.SEVERE, "Control API failed to start: " + e.getMessage(), e);
+            throw e;
         }
     }
 }

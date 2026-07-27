@@ -17,12 +17,12 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
 
     private final JavaPlugin plugin;
     private final AeroConfigSupplier configSupplier;
-    private final Runnable reloadAction;
+    private final AeroReloadAction reloadAction;
 
     public BukkitAeroCommandExecutor(
             JavaPlugin plugin,
             AeroConfigSupplier configSupplier,
-            Runnable reloadAction
+            AeroReloadAction reloadAction
     ) {
         this.plugin = plugin;
         this.configSupplier = configSupplier;
@@ -97,7 +97,7 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
         }
 
         @Override
-        public void reloadConfig() {
+        public void reloadConfig() throws Exception {
             reloadAction.run();
         }
     }
@@ -105,5 +105,16 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
     @FunctionalInterface
     public interface AeroConfigSupplier {
         AeroConfig get();
+    }
+
+    /**
+     * Reload action that may throw checked exceptions (e.g. when the loopback
+     * control API fails to bind on the requested port); the throwing signature
+     * is required so {@code /aero reload} surfaces failures to the sender
+     * instead of silently swallowing them.
+     */
+    @FunctionalInterface
+    public interface AeroReloadAction {
+        void run() throws Exception;
     }
 }

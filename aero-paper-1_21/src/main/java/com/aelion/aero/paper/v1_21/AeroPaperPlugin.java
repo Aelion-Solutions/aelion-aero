@@ -156,7 +156,7 @@ public final class AeroPaperPlugin extends JavaPlugin {
         }
 
         @Override
-        public void reloadConfig() {
+        public void reloadConfig() throws Exception {
             bootstrap.reloadAeroConfig();
         }
     }
