@@ -13,6 +13,18 @@ tasks.withType<JavaCompile>().configureEach {
     options.release.set(8)
 }
 
+tasks.withType<Javadoc>().configureEach {
+    options {
+        this as StandardJavadocDocletOptions
+        encoding = "UTF-8"
+        charSet = "UTF-8"
+        memberLevel = JavadocMemberLevel.PUBLIC
+        windowTitle = "Aelion Aero API"
+        docTitle = "Aelion Aero API"
+        addBooleanOption("Xdoclint:all,-missing", true)
+    }
+}
+
 publishing {
     publications {
         create<MavenPublication>("maven") {
