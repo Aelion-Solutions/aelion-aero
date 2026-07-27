@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.1.0...v0.2.0) (2026-07-27)
+
+
+### Features
+
+* live proxy registry routing and aero-bungee module ([eb066b8](https://github.com/Aelion-Solutions/aelion-aero/commit/eb066b853036e8203d0496455743121705dcb22e))
+* live proxy registry routing and aero-bungee module ([cbf073e](https://github.com/Aelion-Solutions/aelion-aero/commit/cbf073e98125c8c53eb019e45301c6dc9b3ce464))
+
 ## [0.1.0](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.1.0...v0.1.0) (2026-07-26)
 
 
