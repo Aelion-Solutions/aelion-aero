@@ -10,6 +10,12 @@ public final class ServerInfoResponse {
     private String status;
     private String software;
     private String liveStatus;
+    private int currentPlayers;
+    private int maxPlayers;
+    private String groupId;
+    private String groupName;
+    private boolean joinable;
+    private String proxyName;
 
     public String getId() {
         return id;
@@ -49,5 +55,53 @@ public final class ServerInfoResponse {
 
     public void setLiveStatus(String liveStatus) {
         this.liveStatus = liveStatus;
+    }
+
+    public int getCurrentPlayers() {
+        return currentPlayers;
+    }
+
+    public void setCurrentPlayers(int currentPlayers) {
+        this.currentPlayers = currentPlayers;
+    }
+
+    public int getMaxPlayers() {
+        return maxPlayers;
+    }
+
+    public void setMaxPlayers(int maxPlayers) {
+        this.maxPlayers = maxPlayers;
+    }
+
+    public String getGroupId() {
+        return groupId;
+    }
+
+    public void setGroupId(String groupId) {
+        this.groupId = groupId;
+    }
+
+    public String getGroupName() {
+        return groupName;
+    }
+
+    public void setGroupName(String groupName) {
+        this.groupName = groupName;
+    }
+
+    public boolean isJoinable() {
+        return joinable;
+    }
+
+    public void setJoinable(boolean joinable) {
+        this.joinable = joinable;
+    }
+
+    public String getProxyName() {
+        return proxyName;
+    }
+
+    public void setProxyName(String proxyName) {
+        this.proxyName = proxyName;
     }
 }

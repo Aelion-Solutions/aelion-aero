@@ -11,6 +11,7 @@ on:
 permissions:
   contents: write
   pull-requests: write
+  packages: write
 
 jobs:
   release-please:
@@ -61,7 +62,7 @@ jobs:
           # Tags may be v0.1.0 or aelion-aero-v0.1.0 (release-please component tag).
           VERSION="${TAG##*v}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          ls -la aero-paper/build/libs/ aero-velocity/build/libs/ aero-bungee/build/libs/ || true
+          ls -la aero-paper/build/libs/ aero-velocity/build/libs/ aero-bungee/build/libs/ aero-api/build/libs/ || true
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
 
@@ -75,4 +76,10 @@ jobs:
             aero-velocity/build/libs/aero-velocity-${{ steps.version.outputs.version }}.jar
             aero-bungee/build/libs/aero-bungee-${{ steps.version.outputs.version }}.jar
         env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish aero-api to GitHub Packages
+        run: bash ./gradlew :aero-api:publish --no-daemon -Pversion="${{ steps.version.outputs.version }}"
+        env:
+          GITHUB_ACTOR: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

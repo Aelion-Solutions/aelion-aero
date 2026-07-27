@@ -15,6 +15,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "aelion-aero"
 
+include("aero-api")
 include("aero-common")
 include("aero-paper")
 include("aero-velocity")

@@ -80,6 +80,10 @@ public final class AeroVelocityPlugin {
         return aeroConfig;
     }
 
+    BackendRegistryService registryService() {
+        return registryService;
+    }
+
     public void reloadAeroConfig() throws IOException {
         Path configPath = dataDirectory.resolve("config.yml");
         ensureDefaultConfig();
