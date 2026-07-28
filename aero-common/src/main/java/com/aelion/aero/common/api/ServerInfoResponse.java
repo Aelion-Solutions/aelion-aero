@@ -16,6 +16,7 @@ public final class ServerInfoResponse {
     private String groupName;
     private boolean joinable;
     private String proxyName;
+    private String motd;
 
     public String getId() {
         return id;
@@ -103,5 +104,13 @@ public final class ServerInfoResponse {
 
     public void setProxyName(String proxyName) {
         this.proxyName = proxyName;
+    }
+
+    public String getMotd() {
+        return motd;
+    }
+
+    public void setMotd(String motd) {
+        this.motd = motd;
     }
 }

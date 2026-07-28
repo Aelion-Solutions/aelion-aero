@@ -9,6 +9,7 @@ public final class PanelPaths {
     public static final String HEALTH = V1 + "/health";
     public static final String SERVERS = V1 + "/servers";
     public static final String GROUPS = V1 + "/groups";
+    public static final String SELF_STATUS = V1 + "/self/status";
 
     private PanelPaths() {
     }

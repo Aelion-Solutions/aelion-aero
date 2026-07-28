@@ -20,6 +20,8 @@ public final class BukkitAeroBootstrap {
             new AtomicReference<>(AeroConfig.empty());
     private BukkitFleetService fleetService;
     private BukkitControlHttpServer controlHttpServer;
+    private MotdTracker motdTracker;
+    private SelfStatusReporter selfStatusReporter;
 
     public BukkitAeroBootstrap(JavaPlugin plugin) {
         this.plugin = plugin;
@@ -74,6 +76,9 @@ public final class BukkitAeroBootstrap {
                 fleetService,
                 plugin,
                 ServicePriority.Normal);
+        motdTracker = new MotdTracker(plugin);
+        selfStatusReporter = new SelfStatusReporter(plugin, configRef, motdTracker);
+        selfStatusReporter.start();
     }
 
     /**
@@ -100,6 +105,10 @@ public final class BukkitAeroBootstrap {
     }
 
     public void disable() {
+        if (selfStatusReporter != null) {
+            selfStatusReporter.stop();
+            selfStatusReporter = null;
+        }
         if (controlHttpServer != null) {
             controlHttpServer.stop();
             controlHttpServer = null;

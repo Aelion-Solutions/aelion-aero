@@ -131,6 +131,16 @@ public final class HttpPanelClient implements PanelClient {
         return post(PanelPaths.GROUPS, request, CreateGroupResponse.class);
     }
 
+    @Override
+    public void postSelfStatus(SelfStatusRequest request) {
+        requireConfigured();
+        post(PanelPaths.SELF_STATUS, request == null ? new SelfStatusRequest() : request, VoidResponse.class);
+    }
+
+    /** Marker for endpoints that return empty / ignored bodies. */
+    public static final class VoidResponse {
+    }
+
     private void requireConfigured() {
         if (!config.isPanelConfigured()) {
             throw new PanelNotConfiguredException();

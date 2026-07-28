@@ -89,6 +89,7 @@ public final class GroupInfoResponse {
         private int currentPlayers;
         private int maxPlayers;
         private boolean joinable;
+        private String motd;
 
         public String getId() {
             return id;
@@ -144,6 +145,14 @@ public final class GroupInfoResponse {
 
         public void setJoinable(boolean joinable) {
             this.joinable = joinable;
+        }
+
+        public String getMotd() {
+            return motd;
+        }
+
+        public void setMotd(String motd) {
+            this.motd = motd;
         }
     }
 }
