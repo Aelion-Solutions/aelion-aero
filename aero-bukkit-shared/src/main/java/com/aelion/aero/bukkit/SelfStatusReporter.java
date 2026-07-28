@@ -60,41 +60,48 @@ public final class SelfStatusReporter {
 
     private void schedulePush() {
         AeroConfig config = configRef.get();
-        if (config == null || !config.isPanelConfigured()) {
-            return;
-        }
-        if (pushInFlight.get()) {
+        if (config == null || !config.isPanelConfigured() || pushInFlight.get()) {
             return;
         }
         final String motd = motdTracker.motd();
         final int players = Bukkit.getOnlinePlayers().size();
         final int max = Bukkit.getMaxPlayers();
-        if (motd.equals(lastMotdSent) && players == lastPlayersSent && max == lastMaxSent) {
+        if (unchanged(motd, players, max) || !pushInFlight.compareAndSet(false, true)) {
             return;
         }
-        if (!pushInFlight.compareAndSet(false, true)) {
-            return;
-        }
-        final AeroConfig cfg = config;
+        enqueuePush(config, motd, players, max);
+    }
+
+    private boolean unchanged(String motd, int players, int max) {
+        return motd.equals(lastMotdSent) && players == lastPlayersSent && max == lastMaxSent;
+    }
+
+    private void enqueuePush(final AeroConfig cfg, final String motd, final int players, final int max) {
         Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
             @Override
             public void run() {
                 try {
-                    HttpPanelClient client = new HttpPanelClient(cfg);
-                    client.postSelfStatus(new SelfStatusRequest(motd, players, max));
-                    lastMotdSent = motd;
-                    lastPlayersSent = players;
-                    lastMaxSent = max;
-                } catch (PanelNotConfiguredException ignored) {
-                    // nothing to do
-                } catch (PanelApiException e) {
-                    logger.log(Level.FINE, "self/status push failed: HTTP " + e.statusCode() + " " + e.getMessage());
-                } catch (RuntimeException e) {
-                    logger.log(Level.FINE, "self/status push failed", e);
+                    pushStatus(cfg, motd, players, max);
                 } finally {
                     pushInFlight.set(false);
                 }
             }
         });
+    }
+
+    private void pushStatus(AeroConfig cfg, String motd, int players, int max) {
+        try {
+            HttpPanelClient client = new HttpPanelClient(cfg);
+            client.postSelfStatus(new SelfStatusRequest(motd, players, max));
+            lastMotdSent = motd;
+            lastPlayersSent = players;
+            lastMaxSent = max;
+        } catch (PanelNotConfiguredException ignored) {
+            // nothing to do
+        } catch (PanelApiException e) {
+            logger.log(Level.FINE, "self/status push failed: HTTP " + e.statusCode() + " " + e.getMessage());
+        } catch (RuntimeException e) {
+            logger.log(Level.FINE, "self/status push failed", e);
+        }
     }
 }
