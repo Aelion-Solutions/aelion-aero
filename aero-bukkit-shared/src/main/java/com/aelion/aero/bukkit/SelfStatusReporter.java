@@ -5,6 +5,7 @@ import com.aelion.aero.common.api.PanelApiException;
 import com.aelion.aero.common.api.PanelNotConfiguredException;
 import com.aelion.aero.common.api.SelfStatusRequest;
 import com.aelion.aero.common.config.AeroConfig;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -23,6 +24,7 @@ public final class SelfStatusReporter {
     private final AtomicReference<AeroConfig> configRef;
     private final MotdTracker motdTracker;
     private final Logger logger;
+    private final AtomicBoolean pushInFlight = new AtomicBoolean(false);
     private BukkitTask task;
     private String lastMotdSent;
     private int lastPlayersSent = Integer.MIN_VALUE;
@@ -61,11 +63,16 @@ public final class SelfStatusReporter {
         if (config == null || !config.isPanelConfigured()) {
             return;
         }
-        motdTracker.refreshFromServer();
+        if (pushInFlight.get()) {
+            return;
+        }
         final String motd = motdTracker.motd();
         final int players = Bukkit.getOnlinePlayers().size();
         final int max = Bukkit.getMaxPlayers();
         if (motd.equals(lastMotdSent) && players == lastPlayersSent && max == lastMaxSent) {
+            return;
+        }
+        if (!pushInFlight.compareAndSet(false, true)) {
             return;
         }
         final AeroConfig cfg = config;
@@ -84,6 +91,8 @@ public final class SelfStatusReporter {
                     logger.log(Level.FINE, "self/status push failed: HTTP " + e.statusCode() + " " + e.getMessage());
                 } catch (RuntimeException e) {
                     logger.log(Level.FINE, "self/status push failed", e);
+                } finally {
+                    pushInFlight.set(false);
                 }
             }
         });

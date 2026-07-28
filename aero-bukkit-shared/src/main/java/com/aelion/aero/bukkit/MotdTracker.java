@@ -9,14 +9,17 @@ import org.bukkit.event.server.ServerListPingEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /**
- * Tracks the live server-list MOTD (base {@code getMotd()} + {@link ServerListPingEvent} mutations).
+ * Tracks the live server-list MOTD (base {@code getMotd()} seed + {@link ServerListPingEvent} mutations).
+ *
+ * <p>After construction, MOTD is only updated from list-ping events so plugins that mutate the ping
+ * text are not overwritten by the static server MOTD.
  */
 public final class MotdTracker implements Listener {
 
     private final AtomicReference<String> motd = new AtomicReference<String>("");
 
     public MotdTracker(JavaPlugin plugin) {
-        refreshFromServer();
+        seedFromServer();
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
@@ -25,7 +28,7 @@ public final class MotdTracker implements Listener {
         return current == null ? "" : current;
     }
 
-    public void refreshFromServer() {
+    private void seedFromServer() {
         try {
             String base = Bukkit.getServer().getMotd();
             if (base != null) {
