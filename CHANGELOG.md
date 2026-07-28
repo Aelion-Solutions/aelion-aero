@@ -1,5 +1,20 @@
 # Changelog
 
+## [0.6.3](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.2...v0.6.3) (2026-07-28)
+
+
+### Features
+
+* **bukkit:** push live MOTD via self/status ([c0dcd2c](https://github.com/Aelion-Solutions/aelion-aero/commit/c0dcd2c0268e0261a31bda1a95830b23b3ee3d0f))
+* **bukkit:** push live MOTD via self/status ([ea2dd7b](https://github.com/Aelion-Solutions/aelion-aero/commit/ea2dd7b07e09275852b2c53828e98dbb48df5412))
+
+
+### Bug Fixes
+
+* **bukkit:** preserve ping MOTD and skip in-flight pushes ([937da5a](https://github.com/Aelion-Solutions/aelion-aero/commit/937da5ad1adaf526c172de9d46f5a47cbd5a23ab))
+* **cmd:** tighten Aero permission gating ([61a0950](https://github.com/Aelion-Solutions/aelion-aero/commit/61a095098c1b731b14174336bb04c766370c5664))
+* **cmd:** tighten Aero permission gating ([3334228](https://github.com/Aelion-Solutions/aelion-aero/commit/3334228ea31ed415f3a20b30807a1e77acabb250))
+
 ## [0.6.2](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.1...v0.6.2) (2026-07-27)
 
 
