@@ -1,6 +1,8 @@
 package com.aelion.aero.bukkit;
 
 import com.aelion.aero.api.AeroFleetService;
+import com.aelion.aero.common.Permissions;
+import com.aelion.aero.common.command.AeroCommandMessages;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.util.Strings;
@@ -39,7 +41,12 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
 
     @Override
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
-        AeroCommandService.execute(args == null ? new String[0] : args, new BukkitPlatform(sender));
+        BukkitPlatform platform = new BukkitPlatform(sender);
+        if (!Permissions.allowsAny(platform::hasPermission)) {
+            platform.send(AeroCommandMessages.noPermission());
+            return true;
+        }
+        AeroCommandService.execute(args == null ? new String[0] : args, platform);
         return true;
     }
 
@@ -48,7 +55,11 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
         if (args == null) {
             return Collections.emptyList();
         }
-        return AeroCommandService.tabComplete(args, false, onlineNames());
+        BukkitPlatform platform = new BukkitPlatform(sender);
+        if (!Permissions.allowsAny(platform::hasPermission)) {
+            return Collections.emptyList();
+        }
+        return AeroCommandService.tabComplete(args, platform, onlineNames());
     }
 
     /**

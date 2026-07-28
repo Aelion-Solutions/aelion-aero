@@ -104,20 +104,24 @@ public final class AeroCommandService {
 
     public static void execute(String[] args, Platform platform) {
         String sub = args.length == 0 ? "help" : args[0].toLowerCase(Locale.ROOT);
+        boolean canInfo = Permissions.allowsInfo(platform::hasPermission);
+        boolean canAdmin = Permissions.allowsAdmin(platform::hasPermission);
+        boolean canCreate = Permissions.allowsCreate(platform::hasPermission);
         switch (sub) {
             case "help":
-                platform.sendAll(AeroCommandMessages.help(platform.isProxy()));
+                if (!requirePerm(platform, canInfo)) {
+                    return;
+                }
+                platform.sendAll(AeroCommandMessages.help(platform.isProxy(), canInfo, canAdmin, canCreate));
                 break;
             case "info":
-                if (!platform.hasPermission(Permissions.INFO)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canInfo)) {
                     return;
                 }
                 platform.sendAll(AeroCommandMessages.info(platform.config()));
                 break;
             case "reload":
-                if (!platform.hasPermission(Permissions.ADMIN)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canAdmin)) {
                     return;
                 }
                 try {
@@ -128,50 +132,43 @@ public final class AeroCommandService {
                 }
                 break;
             case "ping":
-                if (!platform.hasPermission(Permissions.INFO)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canInfo)) {
                     return;
                 }
                 ping(platform);
                 break;
             case "servers":
-                if (!platform.hasPermission(Permissions.INFO)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canInfo)) {
                     return;
                 }
                 servers(platform, args);
                 break;
             case "backends":
-                if (!platform.hasPermission(Permissions.INFO)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canInfo)) {
                     return;
                 }
                 backends(platform, args);
                 break;
             case "create-server":
-                if (!platform.hasPermission(Permissions.CREATE)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canCreate)) {
                     return;
                 }
                 createServer(platform, args);
                 break;
             case "kick":
-                if (!platform.hasPermission(Permissions.ADMIN)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canAdmin)) {
                     return;
                 }
                 kick(platform, args);
                 break;
             case "transfer":
-                if (!platform.hasPermission(Permissions.ADMIN)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canAdmin)) {
                     return;
                 }
                 transfer(platform, args);
                 break;
             case "notify":
-                if (!platform.hasPermission(Permissions.INFO)) {
-                    platform.send(AeroCommandMessages.noPermission());
+                if (!requirePerm(platform, canInfo)) {
                     return;
                 }
                 fleetNotify(platform, args);
@@ -180,6 +177,14 @@ public final class AeroCommandService {
                 platform.send(AeroCommandMessages.unknownSubcommand(sub, platform.isProxy()));
                 break;
         }
+    }
+
+    private static boolean requirePerm(Platform platform, boolean allowed) {
+        if (allowed) {
+            return true;
+        }
+        platform.send(AeroCommandMessages.noPermission());
+        return false;
     }
 
     public static List<String> tabComplete(String[] args) {
@@ -191,45 +196,75 @@ public final class AeroCommandService {
     }
 
     public static List<String> tabComplete(String[] args, boolean proxy, List<String> onlinePlayers) {
+        return tabComplete(args, proxy, onlinePlayers, true, true, true);
+    }
+
+    public static List<String> tabComplete(
+            String[] args,
+            boolean proxy,
+            List<String> onlinePlayers,
+            boolean canInfo,
+            boolean canAdmin,
+            boolean canCreate
+    ) {
         if (args.length <= 1) {
             String prefix = args.length == 0 ? "" : args[0].toLowerCase(Locale.ROOT);
-            Stream<String> roots = Stream.of(
-                    "help", "info", "reload", "ping", "servers", "kick", "transfer");
-            if (proxy) {
-                roots = Stream.concat(roots, Stream.of("notify", "backends", "create-server"));
+            Stream<String> roots = Stream.empty();
+            if (canInfo) {
+                roots = Stream.of("help", "info", "ping", "servers");
+            }
+            if (canAdmin) {
+                roots = Stream.concat(roots, Stream.of("reload", "kick", "transfer"));
+            }
+            if (proxy && canInfo) {
+                roots = Stream.concat(roots, Stream.of("notify", "backends"));
+            }
+            if (proxy && canCreate) {
+                roots = Stream.concat(roots, Stream.of("create-server"));
             }
             return roots.filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
         String sub = args[0].toLowerCase(Locale.ROOT);
         if (args.length == 2) {
             String prefix = args[1].toLowerCase(Locale.ROOT);
-            if ("servers".equals(sub)) {
+            if (canInfo && "servers".equals(sub)) {
                 return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
-            if ("notify".equals(sub)) {
+            if (canInfo && "notify".equals(sub)) {
                 return Stream.of("on", "off").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
-            if (proxy && "backends".equals(sub)) {
+            if (proxy && canInfo && "backends".equals(sub)) {
                 return Stream.of("list").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
             }
-            if ("kick".equals(sub) || "transfer".equals(sub)) {
+            if (canAdmin && ("kick".equals(sub) || "transfer".equals(sub))) {
                 List<String> names = onlinePlayers == null ? Collections.emptyList() : onlinePlayers;
                 return names.stream()
                         .filter(n -> n.toLowerCase(Locale.ROOT).startsWith(prefix))
                         .collect(Collectors.toList());
             }
         }
-        if (args.length == 3 && "servers".equals(sub) && "list".equalsIgnoreCase(args[1])) {
+        if (canInfo && args.length == 3 && "servers".equals(sub) && "list".equalsIgnoreCase(args[1])) {
             String prefix = args[2].toLowerCase(Locale.ROOT);
             return Stream.of("--names").filter(s -> s.startsWith(prefix)).collect(Collectors.toList());
         }
-        if (args.length >= 3 && "transfer".equals(sub)) {
+        if (canAdmin && args.length >= 3 && "transfer".equals(sub)) {
             String prefix = args[args.length - 1].toLowerCase(Locale.ROOT);
             return Stream.of("server=", "group=")
                     .filter(s -> s.startsWith(prefix))
                     .collect(Collectors.toList());
         }
         return Collections.emptyList();
+    }
+
+    /** Tab-complete using the caller's live permission set. */
+    public static List<String> tabComplete(String[] args, Platform platform, List<String> onlinePlayers) {
+        return tabComplete(
+                args,
+                platform.isProxy(),
+                onlinePlayers,
+                Permissions.allowsInfo(platform::hasPermission),
+                Permissions.allowsAdmin(platform::hasPermission),
+                Permissions.allowsCreate(platform::hasPermission));
     }
 
     private static void fleetNotify(Platform platform, String[] args) {

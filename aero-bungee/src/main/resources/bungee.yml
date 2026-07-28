@@ -10,11 +10,15 @@ commands:
     permission: aelion.aero.info
 permissions:
   aelion.aero.info:
-    description: Use /ae help, info, ping
-    default: true
+    description: Use /ae help, info, ping, servers, backends, notify
+    default: op
   aelion.aero.admin:
-    description: Reload Aero config
+    description: Reload Aero config and admin actions
     default: op
+    children:
+      aelion.aero.info: true
   aelion.aero.create:
-    description: Reserved for future create commands
+    description: Create servers via panel
     default: op
+    children:
+      aelion.aero.info: true

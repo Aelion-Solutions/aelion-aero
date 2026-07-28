@@ -10,10 +10,14 @@ website: https://github.com/Aelion-Solutions/aelion-aero
 permissions:
   aelion.aero.info:
     description: View Aelion Aero status
-    default: true
+    default: op
   aelion.aero.admin:
     description: Reload config and admin actions
     default: op
+    children:
+      aelion.aero.info: true
   aelion.aero.create:
     description: Create servers/groups via panel (reserved)
     default: op
+    children:
+      aelion.aero.info: true

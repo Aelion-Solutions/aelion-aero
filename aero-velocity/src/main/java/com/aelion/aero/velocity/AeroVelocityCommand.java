@@ -40,10 +40,14 @@ final class AeroVelocityCommand implements SimpleCommand {
 
     @Override
     public List<String> suggest(Invocation invocation) {
+        VelocityPlatform platform = new VelocityPlatform(invocation);
+        if (!Permissions.allowsAny(platform::hasPermission)) {
+            return List.of();
+        }
         List<String> names = plugin.proxy().getAllPlayers().stream()
                 .map(Player::getUsername)
                 .collect(Collectors.toList());
-        return AeroCommandService.tabComplete(invocation.arguments(), true, names);
+        return AeroCommandService.tabComplete(invocation.arguments(), platform, names);
     }
 
     @Override
@@ -53,9 +57,7 @@ final class AeroVelocityCommand implements SimpleCommand {
 
     @Override
     public boolean hasPermission(Invocation invocation) {
-        return invocation.source().hasPermission(Permissions.INFO)
-                || invocation.source().hasPermission(Permissions.ADMIN)
-                || invocation.source().hasPermission(Permissions.CREATE);
+        return Permissions.allowsAny(invocation.source()::hasPermission);
     }
 
     static void register(AeroVelocityPlugin plugin) {

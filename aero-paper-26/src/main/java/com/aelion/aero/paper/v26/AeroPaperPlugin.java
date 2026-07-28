@@ -53,29 +53,37 @@ public final class AeroPaperPlugin extends JavaPlugin {
         getLifecycleManager().registerEventHandler(LifecycleEvents.COMMANDS, event -> {
             Commands commands = event.registrar();
             LiteralCommandNode<CommandSourceStack> root = Commands.literal(AeroConstants.COMMAND_BACKEND_PRIMARY)
-                    .requires(stack -> stack.getSender().hasPermission(Permissions.INFO)
-                            || stack.getSender().hasPermission(Permissions.ADMIN))
+                    .requires(stack -> Permissions.allowsAny(stack.getSender()::hasPermission))
                     .executes(ctx -> {
                         dispatch(ctx.getSource().getSender(), new String[0]);
                         return Command.SINGLE_SUCCESS;
                     })
-                    .then(Commands.literal("help").executes(ctx -> {
-                        dispatch(ctx.getSource().getSender(), new String[] {"help"});
-                        return Command.SINGLE_SUCCESS;
-                    }))
-                    .then(Commands.literal("info").executes(ctx -> {
-                        dispatch(ctx.getSource().getSender(), new String[] {"info"});
-                        return Command.SINGLE_SUCCESS;
-                    }))
-                    .then(Commands.literal("reload").executes(ctx -> {
-                        dispatch(ctx.getSource().getSender(), new String[] {"reload"});
-                        return Command.SINGLE_SUCCESS;
-                    }))
-                    .then(Commands.literal("ping").executes(ctx -> {
-                        dispatch(ctx.getSource().getSender(), new String[] {"ping"});
-                        return Command.SINGLE_SUCCESS;
-                    }))
+                    .then(Commands.literal("help")
+                            .requires(stack -> Permissions.allowsInfo(stack.getSender()::hasPermission))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"help"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(Commands.literal("info")
+                            .requires(stack -> Permissions.allowsInfo(stack.getSender()::hasPermission))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"info"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(Commands.literal("reload")
+                            .requires(stack -> Permissions.allowsAdmin(stack.getSender()::hasPermission))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"reload"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(Commands.literal("ping")
+                            .requires(stack -> Permissions.allowsInfo(stack.getSender()::hasPermission))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"ping"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
                     .then(Commands.literal("servers")
+                            .requires(stack -> Permissions.allowsInfo(stack.getSender()::hasPermission))
                             .then(Commands.literal("list")
                                     .then(Commands.literal("--names").executes(ctx -> {
                                         dispatch(ctx.getSource().getSender(),
@@ -89,6 +97,28 @@ public final class AeroPaperPlugin extends JavaPlugin {
                                     }))
                             .executes(ctx -> {
                                 dispatch(ctx.getSource().getSender(), new String[] {"servers"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(Commands.literal("kick")
+                            .requires(stack -> Permissions.allowsAdmin(stack.getSender()::hasPermission))
+                            .then(Commands.argument("args", StringArgumentType.greedyString())
+                                    .executes(ctx -> dispatchVerb(
+                                            ctx.getSource().getSender(),
+                                            "kick",
+                                            StringArgumentType.getString(ctx, "args"))))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"kick"});
+                                return Command.SINGLE_SUCCESS;
+                            }))
+                    .then(Commands.literal("transfer")
+                            .requires(stack -> Permissions.allowsAdmin(stack.getSender()::hasPermission))
+                            .then(Commands.argument("args", StringArgumentType.greedyString())
+                                    .executes(ctx -> dispatchVerb(
+                                            ctx.getSource().getSender(),
+                                            "transfer",
+                                            StringArgumentType.getString(ctx, "args"))))
+                            .executes(ctx -> {
+                                dispatch(ctx.getSource().getSender(), new String[] {"transfer"});
                                 return Command.SINGLE_SUCCESS;
                             }))
                     // Fallback: forward unknown / proxy-only verbs to AeroCommandService for styled
@@ -114,6 +144,16 @@ public final class AeroPaperPlugin extends JavaPlugin {
 
     private void dispatch(CommandSender sender, String[] args) {
         AeroCommandService.execute(args, new PaperCommandPlatform(sender));
+    }
+
+    private int dispatchVerb(CommandSender sender, String verb, String rawArgs) {
+        String raw = rawArgs == null ? "" : rawArgs.trim();
+        String[] rest = raw.isEmpty() ? new String[0] : raw.split("\\s+");
+        String[] args = new String[rest.length + 1];
+        args[0] = verb;
+        System.arraycopy(rest, 0, args, 1, rest.length);
+        dispatch(sender, args);
+        return Command.SINGLE_SUCCESS;
     }
 
     private final class PaperCommandPlatform implements AeroCommandService.Platform {

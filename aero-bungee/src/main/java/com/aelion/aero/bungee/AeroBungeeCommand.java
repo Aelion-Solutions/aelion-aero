@@ -2,6 +2,7 @@ package com.aelion.aero.bungee;
 
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.Permissions;
+import com.aelion.aero.common.command.AeroCommandMessages;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
@@ -26,21 +27,31 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
     private final AeroBungeePlugin plugin;
 
     AeroBungeeCommand(AeroBungeePlugin plugin) {
-        super(AeroConstants.COMMAND_PROXY_PRIMARY, Permissions.INFO, AeroConstants.COMMAND_PROXY_ALIAS);
+        // Null permission: outer gate is allowsAny in execute (admin/create imply info in code).
+        super(AeroConstants.COMMAND_PROXY_PRIMARY, null, AeroConstants.COMMAND_PROXY_ALIAS);
         this.plugin = plugin;
     }
 
     @Override
     public void execute(CommandSender sender, String[] args) {
-        AeroCommandService.execute(args, new BungeePlatform(sender));
+        BungeePlatform platform = new BungeePlatform(sender);
+        if (!Permissions.allowsAny(platform::hasPermission)) {
+            platform.send(AeroCommandMessages.noPermission());
+            return;
+        }
+        AeroCommandService.execute(args, platform);
     }
 
     @Override
     public Iterable<String> onTabComplete(CommandSender sender, String[] args) {
+        BungeePlatform platform = new BungeePlatform(sender);
+        if (!Permissions.allowsAny(platform::hasPermission)) {
+            return Collections.emptyList();
+        }
         List<String> names = plugin.getProxy().getPlayers().stream()
                 .map(ProxiedPlayer::getName)
                 .collect(Collectors.toList());
-        return AeroCommandService.tabComplete(args, true, names);
+        return AeroCommandService.tabComplete(args, platform, names);
     }
 
     private final class BungeePlatform implements AeroCommandService.Platform {
