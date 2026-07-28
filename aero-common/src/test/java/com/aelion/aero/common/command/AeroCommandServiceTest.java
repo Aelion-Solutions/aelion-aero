@@ -7,6 +7,7 @@ import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.ProxyBackendRole;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
@@ -189,17 +190,125 @@ class AeroCommandServiceTest {
         assertTrue(modes.contains("off"));
     }
 
+    @Test
+    void helpDeniedWithoutPermissions() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.permissions.clear();
+        AeroCommandService.execute(new String[] {"help"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+    }
+
+    @Test
+    void reloadDeniedWithInfoOnly() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.grantInfoOnly();
+        AeroCommandService.execute(new String[] {"reload"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("reloaded") || l.contains("Reloaded")));
+    }
+
+    @Test
+    void kickDeniedWithInfoOnly() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.grantInfoOnly();
+        AeroCommandService.execute(new String[] {"kick", "Steve"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+    }
+
+    @Test
+    void adminOnlyCanRunInfo() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.grantAdminOnly();
+        AeroCommandService.execute(new String[] {"info"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("server-id")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+    }
+
+    @Test
+    void helpFiltersAdminVerbsForInfoOnly() {
+        RecordingPlatform platform = new RecordingPlatform(false);
+        platform.grantInfoOnly();
+        AeroCommandService.execute(new String[] {"help"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("info")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("reload")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("kick")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("transfer")));
+    }
+
+    @Test
+    void createDeniedWithoutCreate() {
+        RecordingPlatform platform = new RecordingPlatform(true);
+        platform.grantInfoOnly();
+        AeroCommandService.execute(
+                new String[] {"create-server", "name=Lobby", "software=paper", "version=1.21.4"},
+                platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+        assertFalse(platform.asyncRan.get());
+    }
+
+    @Test
+    void createAllowedWithCreateOnly() {
+        RecordingPlatform platform = new RecordingPlatform(true);
+        platform.grantCreateOnly();
+        AeroCommandService.execute(new String[] {"create-server", "name=Lobby"}, platform);
+        assertTrue(platform.lines.stream().anyMatch(l -> l.contains("Usage") || l.contains("template")));
+        assertFalse(platform.lines.stream().anyMatch(l -> l.contains("permission")));
+    }
+
+    @Test
+    void tabCompleteFiltersByPermission() {
+        List<String> infoOnly = AeroCommandService.tabComplete(
+                new String[] {""}, false, Collections.emptyList(), true, false, false);
+        assertTrue(infoOnly.contains("info"));
+        assertFalse(infoOnly.contains("reload"));
+        assertFalse(infoOnly.contains("kick"));
+
+        List<String> admin = AeroCommandService.tabComplete(
+                new String[] {""}, false, Collections.emptyList(), true, true, false);
+        assertTrue(admin.contains("reload"));
+        assertTrue(admin.contains("kick"));
+
+        List<String> createProxy = AeroCommandService.tabComplete(
+                new String[] {""}, true, Collections.emptyList(), true, false, true);
+        assertTrue(createProxy.contains("create-server"));
+        assertFalse(createProxy.contains("reload"));
+    }
+
     private static final class RecordingPlatform implements AeroCommandService.Platform {
         private final List<String> lines = new ArrayList<>();
         private final AtomicBoolean asyncRan = new AtomicBoolean(false);
         private final boolean proxy;
         private final List<BackendEntry> backends = new ArrayList<>();
+        private final java.util.Set<String> permissions = new java.util.HashSet<>();
         private boolean supportsNotify;
         private java.util.UUID senderUuid;
         private boolean notifyEnabled;
 
         private RecordingPlatform(boolean proxy) {
             this.proxy = proxy;
+            grantAll();
+        }
+
+        private void grantAll() {
+            permissions.clear();
+            permissions.add(com.aelion.aero.common.Permissions.INFO);
+            permissions.add(com.aelion.aero.common.Permissions.ADMIN);
+            permissions.add(com.aelion.aero.common.Permissions.CREATE);
+        }
+
+        private void grantInfoOnly() {
+            permissions.clear();
+            permissions.add(com.aelion.aero.common.Permissions.INFO);
+        }
+
+        private void grantAdminOnly() {
+            permissions.clear();
+            permissions.add(com.aelion.aero.common.Permissions.ADMIN);
+        }
+
+        private void grantCreateOnly() {
+            permissions.clear();
+            permissions.add(com.aelion.aero.common.Permissions.CREATE);
         }
 
         @Override
@@ -214,7 +323,7 @@ class AeroCommandServiceTest {
 
         @Override
         public boolean hasPermission(String permission) {
-            return true;
+            return permissions.contains(permission);
         }
 
         @Override

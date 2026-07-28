@@ -17,20 +17,39 @@ public final class AeroCommandMessages {
     }
 
     public static List<String> help(boolean proxy) {
+        return help(proxy, true, true, true);
+    }
+
+    /**
+     * @param canInfo  show read-level verbs (help/info/ping/servers/notify/backends)
+     * @param canAdmin show reload/kick/transfer
+     * @param canCreate show create-server (proxy only)
+     */
+    public static List<String> help(boolean proxy, boolean canInfo, boolean canAdmin, boolean canCreate) {
         String cmd = AeroConstants.commandRoot(proxy);
         List<String> lines = new ArrayList<>();
         lines.add(AeroCommandStyle.success(AeroConstants.NAME + " §fv" + AeroVersion.VERSION));
-        lines.add(AeroCommandStyle.info("/" + cmd + " help §8— §7show this help"));
-        lines.add(AeroCommandStyle.info("/" + cmd + " info §8— §7plugin and panel status"));
-        lines.add(AeroCommandStyle.info("/" + cmd + " reload §8— §7reload config"));
-        lines.add(AeroCommandStyle.info("/" + cmd + " ping §8— §7ping the Aelion Cloud panel"));
-        lines.add(AeroCommandStyle.info("/" + cmd + " servers list [--names] §8— §7list panel servers"));
-        lines.add(AeroCommandStyle.info("/" + cmd + " kick <player> [message…] §8— §7kick a player"));
-        lines.add(AeroCommandStyle.info(
-                "/" + cmd + " transfer <player> server=<id|name>|group=<id|name> §8— §7move a player"));
-        if (proxy) {
+        if (canInfo) {
+            lines.add(AeroCommandStyle.info("/" + cmd + " help §8— §7show this help"));
+            lines.add(AeroCommandStyle.info("/" + cmd + " info §8— §7plugin and panel status"));
+        }
+        if (canAdmin) {
+            lines.add(AeroCommandStyle.info("/" + cmd + " reload §8— §7reload config"));
+        }
+        if (canInfo) {
+            lines.add(AeroCommandStyle.info("/" + cmd + " ping §8— §7ping the Aelion Cloud panel"));
+            lines.add(AeroCommandStyle.info("/" + cmd + " servers list [--names] §8— §7list panel servers"));
+        }
+        if (canAdmin) {
+            lines.add(AeroCommandStyle.info("/" + cmd + " kick <player> [message…] §8— §7kick a player"));
+            lines.add(AeroCommandStyle.info(
+                    "/" + cmd + " transfer <player> server=<id|name>|group=<id|name> §8— §7move a player"));
+        }
+        if (proxy && canInfo) {
             lines.add(AeroCommandStyle.info("/" + cmd + " notify [on|off] §8— §7toggle fleet change chat"));
             lines.add(AeroCommandStyle.info("/" + cmd + " backends §8— §7list live proxy backends"));
+        }
+        if (proxy && canCreate) {
             lines.add(AeroCommandStyle.info(
                     "/" + cmd + " create-server name=<n> template=<tpl> §8— §7or software=+version="));
         }

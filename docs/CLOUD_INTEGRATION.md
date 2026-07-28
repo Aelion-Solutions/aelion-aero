@@ -210,6 +210,6 @@ Tracked as [aelion-cloud#328](https://github.com/Aelion-Solutions/aelion-cloud/i
 
 | Node | Default | Use |
 |------|---------|-----|
-| `aelion.aero.info` | true | help/info/ping/servers list/backends |
-| `aelion.aero.admin` | op | reload, kick, transfer |
-| `aelion.aero.create` | op | `/ae create-server` (proxy only) |
+| `aelion.aero.info` | op | help/info/ping/servers list/backends/notify |
+| `aelion.aero.admin` | op | reload, kick, transfer (implies info) |
+| `aelion.aero.create` | op | `/ae create-server` (proxy only; implies info) |

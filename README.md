@@ -96,9 +96,9 @@ On Velocity/Bungee, set `control.enabled` and `control.token` in `aero.ae` to ac
 
 | Command | Permission | Notes |
 |---------|------------|--------|
-| `/ae` / `/aec` | `aelion.aero.info` | Proxy primary + alias (Velocity/Bungee) |
-| `/aes` | `aelion.aero.info` | Backend primary (Bukkit/Paper) |
-| `/ae help` or `/aes help` | info | Usage (proxy help includes create/backends) |
+| `/ae` / `/aec` | `aelion.aero.info` (or admin/create) | Proxy primary + alias (Velocity/Bungee); defaults **op** |
+| `/aes` | `aelion.aero.info` (or admin/create) | Backend primary (Bukkit/Paper); defaults **op** |
+| `/ae help` or `/aes help` | info | Usage (filtered to verbs you can run) |
 | `/ae info` or `/aes info` | info | Version, server-id, panel host (no tokens) |
 | `/ae reload` or `/aes reload` | `aelion.aero.admin` | Reload config (+ restart control API on Velocity) |
 | `/ae ping` or `/aes ping` | info | Hit panel health/info |
@@ -108,6 +108,8 @@ On Velocity/Bungee, set `control.enabled` and `control.token` in `aero.ae` to ac
 | `/ae transfer <player> server=\|group=` or `/aes …` | `aelion.aero.admin` | Transfer via fleet / proxy switch |
 | `/ae backends` | info | Live proxy backends (Velocity/Bungee only) |
 | `/ae create-server …` | `aelion.aero.create` | Proxy only; `template=` XOR `software=`+`version=` |
+
+`admin` and `create` each imply `info` (YAML children + code). They do not imply each other.
 
 ## Cloud integration
 

@@ -3,7 +3,7 @@ version: ${version}
 main: com.aelion.aero.bukkit.v1_13.AeroBukkitPlugin
 api-version: "1.13"
 author: Aelion Solutions
-description: Connects this Bukkit/Spigot/Paper server to Aelion Cloud (1.13-1.16)
+description: Connects this Bukkit/Spigot server to Aelion Cloud (1.13-1.16)
 website: https://github.com/Aelion-Solutions/aelion-aero
 
 commands:
@@ -15,10 +15,14 @@ commands:
 permissions:
   aelion.aero.info:
     description: View Aelion Aero status
-    default: true
+    default: op
   aelion.aero.admin:
     description: Reload config and admin actions
     default: op
+    children:
+      aelion.aero.info: true
   aelion.aero.create:
     description: Create servers/groups via panel (reserved)
     default: op
+    children:
+      aelion.aero.info: true
