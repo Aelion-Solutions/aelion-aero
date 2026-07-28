@@ -24,6 +24,41 @@ public final class FleetServerSnapshot {
     private final String groupName;
     private final boolean joinable;
     private final String proxyName;
+    private final String motd;
+
+    /**
+     * Creates a server snapshot without MOTD (legacy callers).
+     *
+     * @see #FleetServerSnapshot(String, String, String, String, String, int, int, String, String, boolean, String, String)
+     */
+    public FleetServerSnapshot(
+            String id,
+            String name,
+            String status,
+            String software,
+            String liveStatus,
+            int currentPlayers,
+            int maxPlayers,
+            String groupId,
+            String groupName,
+            boolean joinable,
+            String proxyName
+    ) {
+        this(
+                id,
+                name,
+                status,
+                software,
+                liveStatus,
+                currentPlayers,
+                maxPlayers,
+                groupId,
+                groupName,
+                joinable,
+                proxyName,
+                null
+        );
+    }
 
     /**
      * Creates a server snapshot.
@@ -43,6 +78,7 @@ public final class FleetServerSnapshot {
      * @param joinable       whether the panel considers this backend joinable
      * @param proxyName      name registered on the proxy for Connect; Aero falls back to
      *                       {@code name} when the panel omits {@code proxyName}
+     * @param motd           live server-list MOTD from the backend (may be {@code null})
      */
     public FleetServerSnapshot(
             String id,
@@ -55,7 +91,8 @@ public final class FleetServerSnapshot {
             String groupId,
             String groupName,
             boolean joinable,
-            String proxyName
+            String proxyName,
+            String motd
     ) {
         this.id = id;
         this.name = name;
@@ -68,6 +105,7 @@ public final class FleetServerSnapshot {
         this.groupName = groupName;
         this.joinable = joinable;
         this.proxyName = proxyName;
+        this.motd = motd;
     }
 
     /**
@@ -107,7 +145,7 @@ public final class FleetServerSnapshot {
     }
 
     /**
-     * Live runtime status from the panel (e.g. online / offline / searching).
+     * Live runtime status from the panel (e.g. running / starting / stopped).
      *
      * @return live status, or {@code null} if omitted
      */
@@ -171,5 +209,14 @@ public final class FleetServerSnapshot {
      */
     public String proxyName() {
         return proxyName;
+    }
+
+    /**
+     * Live Minecraft server-list MOTD reported by the backend Aero plugin.
+     *
+     * @return MOTD text, or {@code null} if unknown / not reported yet
+     */
+    public String motd() {
+        return motd;
     }
 }

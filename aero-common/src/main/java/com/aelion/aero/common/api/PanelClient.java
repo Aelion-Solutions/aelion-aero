@@ -18,4 +18,9 @@ public interface PanelClient {
 
     CreateGroupResponse createGroup(CreateGroupRequest request)
             throws PanelNotConfiguredException, PanelApiException;
+
+    /**
+     * Push live MOTD / player counts for the calling Aero server.
+     */
+    void postSelfStatus(SelfStatusRequest request) throws PanelNotConfiguredException, PanelApiException;
 }

@@ -214,7 +214,8 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
                 r.getGroupId(),
                 r.getGroupName(),
                 r.isJoinable(),
-                proxy
+                proxy,
+                r.getMotd()
         );
     }
 
@@ -239,7 +240,8 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
                             g.getId(),
                             g.getName(),
                             m.isJoinable(),
-                            proxy
+                            proxy,
+                            m.getMotd()
                     ));
                 }
             }
