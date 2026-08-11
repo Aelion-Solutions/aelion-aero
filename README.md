@@ -3,19 +3,6 @@
 Paper/Spigot, Velocity, and BungeeCord/Waterfall plugins that connect Minecraft to
 [Aelion Cloud](https://github.com/Aelion-Solutions/aelion-cloud).
 
-Related: [aelion-cloud#308](https://github.com/Aelion-Solutions/aelion-cloud/issues/308)
-
-## Status (phase 2)
-
-- Proxy `/ae` (+ `/aec`): `help`, `info`, `reload`, `ping`, `servers list`, plus `backends` and `create-server`
-- Backend `/aes`: `help`, `info`, `reload`, `ping`, `servers list`, `kick`, `transfer` (Paper 1.21+ uses Brigadier; older bands use classic commands; styled `[Aero]` prefix + colors)
-- Shared panel client + create DTOs in `aero-common` (Java 8 bytecode)
-- Multi-version **backend bands** from MC 1.8 through 1.21+ — see [docs/COMPATIBILITY.md](docs/COMPATIBILITY.md)
-- Proxy **live backend registry**: empty on-disk server maps; process memory via `PUT /v1/backends`
-- Live join routing (Velocity `PlayerChooseInitialServerEvent` / Bungee `ServerConnectEvent`)
-- On backend deregister: move players to a lobby/try target, or disconnect if none
-- Cloud wiring documented in [docs/CLOUD_INTEGRATION.md](docs/CLOUD_INTEGRATION.md)
-
 ## Modules
 
 | Module | Artifact | Platform |
@@ -56,14 +43,6 @@ Plugin JARs:
 - `aero-paper-26/build/libs/aero-paper-26-<version>.jar`
 - `aero-velocity/build/libs/aero-velocity-<version>.jar`
 - `aero-bungee/build/libs/aero-bungee-<version>.jar`
-
-## Install (today)
-
-Manual only:
-
-1. Build or download a release asset matching your MC/proxy version ([COMPATIBILITY.md](docs/COMPATIBILITY.md)).
-2. Drop the JAR into the server/proxy `plugins/` folder (or an Aelion Cloud template).
-3. Restart the process.
 
 Default config is split into two files:
 
@@ -119,12 +98,6 @@ See **[docs/CLOUD_INTEGRATION.md](docs/CLOUD_INTEGRATION.md)** for:
 - Daemon localhost `PUT` after proxy sync
 - Config / token injection
 - Matrix-based JAR delivery (cloud#328)
-
-## Delivery (planned, Aelion Cloud)
-
-1. Panel fetches GitHub Release assets (private repo → `AERO_GITHUB_TOKEN` on panel only).
-2. Cache under e.g. `data/aero-plugins/<productVer>/`.
-3. Select artifact via [`compat/aero-compat.yml`](compat/aero-compat.yml); install into instance `plugins/`.
 
 ## Release
 
