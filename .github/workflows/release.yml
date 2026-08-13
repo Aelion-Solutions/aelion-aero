@@ -21,9 +21,20 @@ jobs:
       releases_created: ${{ steps.release.outputs.releases_created }}
       tag_name: ${{ steps.release.outputs.tag_name }}
     steps:
+      # https://github.com/apps/aelion-bot — vars.APP_ID + secrets.APP_PRIVATE_KEY
+      - name: Generate Aelion Bot token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+          permission-pull-requests: write
+
       - uses: googleapis/release-please-action@v4
         id: release
         with:
+          token: ${{ steps.app-token.outputs.token }}
           config-file: .github/release-please-config.json
           manifest-file: .github/release-please-manifest.json
           target-branch: main
@@ -76,9 +87,18 @@ jobs:
         env:
           TAG: ${{ needs.release-please.outputs.tag_name }}
 
+      - name: Generate Aelion Bot token
+        id: app-token
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3.2.0
+        with:
+          app-id: ${{ vars.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+          permission-contents: write
+
       - name: Upload JARs to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
+          token: ${{ steps.app-token.outputs.token }}
           tag_name: ${{ needs.release-please.outputs.tag_name }}
           fail_on_unmatched_files: true
           files: |
@@ -90,8 +110,6 @@ jobs:
             aero-paper-26/build/libs/aero-paper-26-${{ steps.version.outputs.version }}.jar
             aero-velocity/build/libs/aero-velocity-${{ steps.version.outputs.version }}.jar
             aero-bungee/build/libs/aero-bungee-${{ steps.version.outputs.version }}.jar
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Publish aero-api to GitHub Packages
         run: bash ./gradlew :aero-api:publish --no-daemon -Pversion="${{ steps.version.outputs.version }}"
