@@ -30,8 +30,10 @@ Building is not documented, so this repo is for viewing the code to make sure it
 Releases build artifacts and packages automatically, if you want to build it yourself for whatever reason you should understand how.
 
 ## aero-api 
-aero-api can be used to develop plugins against the aero runtime.
-WIP Section
+aero-api is a small library/api interface to communicate with the cloud service. 
+It holds the connection and decides who gets priority and what is allowed. 
+For now *ANY* plugin can interact with the aero-api (there is no whitelist yet) meaning those can also control the cloud, so keep that in mind. 
+You can find more about is [here](https://github.com/Aelion-Solutions/aelion-aero/wiki/API).
 
 ## Commands
 
