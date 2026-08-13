@@ -20,8 +20,8 @@ In normal cases you dont have to download these manually. This repo is for trans
 | `aero-paper-1_17` | `aero-paper-1_17-<version>.jar` | Paper **1.17–1.20.x** |
 | `aero-paper-1_21` | `aero-paper-1_21-<version>.jar` | Paper **1.21.x** |
 | `aero-paper-26` | `aero-paper-26-<version>.jar` | Paper **26.x** |
-| `aero-velocity` | `aero-velocity-<version>.jar` | Velocity **3.4.x** |
-| `aero-bungee` | `aero-bungee-<version>.jar` | BungeeCord / Waterfall |
+| `aero-velocity` | `aero-velocity-<version>.jar` | Velocity **3.4.x** (main proxy support) |
+| `aero-bungee` | `aero-bungee-<version>.jar` | BungeeCord / Waterfall (legacy support) |
 
 Compatibility matrix: [`compat/aero-compat.yml`](compat/aero-compat.yml).
 
