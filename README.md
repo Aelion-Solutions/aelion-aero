@@ -1,3 +1,7 @@
+<p align="center">
+  <img width="778" height="270" alt="aelion-cloud-aero" src="https://github.com/user-attachments/assets/ca83bb24-7dbb-483b-9eb5-1d88cbcdf016" />
+</p>
+
 # Aelion Aero
 
 Paper/Spigot, Velocity, and BungeeCord/Waterfall (legacy) plugins that connect Aelion Servers to
