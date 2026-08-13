@@ -25,6 +25,10 @@ Compatibility matrix: [`compat/aero-compat.yml`](compat/aero-compat.yml).
 Building is not documented, so this repo is for viewing the code to make sure its safe for you.
 Releases build artifacts and packages automatically, if you want to build it yourself for whatever reason you should understand how.
 
+## aero-api 
+aero-api can be used to develop plugins against the aero runtime.
+WIP Section
+
 ## Commands
 
 | Command | Permission | Notes |
