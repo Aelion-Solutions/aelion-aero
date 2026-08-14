@@ -1,6 +1,6 @@
 name: Publish aero-api
 
-# Manual / on-demand publish of com.aelion.aero:aero-api to GitHub Packages
+# Manual / on-demand publish of com.aelion.aero:aero-api to maven.aelion.solutions
 # (also runs automatically from the Release workflow after a tagged release).
 
 on:
@@ -13,7 +13,6 @@ on:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
   publish:
@@ -41,5 +40,5 @@ jobs:
           fi
         env:
           VERSION_OVERRIDE: ${{ inputs.version }}
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AELION_MAVEN_USER: ${{ secrets.AELION_MAVEN_USER }}
+          AELION_MAVEN_TOKEN: ${{ secrets.AELION_MAVEN_TOKEN }}

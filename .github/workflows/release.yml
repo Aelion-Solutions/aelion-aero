@@ -93,8 +93,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Publish aero-api to GitHub Packages
+      - name: Publish aero-api to maven.aelion.solutions
         run: bash ./gradlew :aero-api:publish --no-daemon -Pversion="${{ steps.version.outputs.version }}"
         env:
-          GITHUB_ACTOR: ${{ github.actor }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          AELION_MAVEN_USER: ${{ secrets.AELION_MAVEN_USER }}
+          AELION_MAVEN_TOKEN: ${{ secrets.AELION_MAVEN_TOKEN }}

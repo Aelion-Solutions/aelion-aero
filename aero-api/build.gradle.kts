@@ -53,14 +53,20 @@ publishing {
     }
     repositories {
         maven {
-            name = "GitHubPackages"
-            url = uri("https://maven.pkg.github.com/Aelion-Solutions/aelion-aero")
+            name = "AelionMaven"
+            url = uri(
+                if (version.toString().endsWith("-SNAPSHOT")) {
+                    "https://maven.aelion.solutions/snapshots"
+                } else {
+                    "https://maven.aelion.solutions/releases"
+                }
+            )
             credentials {
-                username = (findProperty("gpr.user") as String?)
-                    ?: System.getenv("GITHUB_ACTOR")
-                    ?: "github-actions"
-                password = (findProperty("gpr.key") as String?)
-                    ?: System.getenv("GITHUB_TOKEN")
+                username = (findProperty("aelionMaven.user") as String?)
+                    ?: System.getenv("AELION_MAVEN_USER")
+                    ?: ""
+                password = (findProperty("aelionMaven.token") as String?)
+                    ?: System.getenv("AELION_MAVEN_TOKEN")
                     ?: ""
             }
         }
