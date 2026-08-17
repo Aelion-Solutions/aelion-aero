@@ -2,7 +2,7 @@ package com.aelion.aero.velocity;
 
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.BackendRegistry;
-import com.aelion.aero.common.control.ProxyBackendRole;
+import com.aelion.aero.common.control.ConnectionTactics;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -40,6 +40,7 @@ final class BackendRegistryService {
     private final Logger logger;
     private final AtomicReference<BackendRegistry> lastApplied =
             new AtomicReference<>(new BackendRegistry());
+    private final ConnectionTactics.RoundRobinState roundRobin = new ConnectionTactics.RoundRobinState();
 
     BackendRegistryService(ProxyServer proxy, Logger logger) {
         this.proxy = proxy;
@@ -51,29 +52,36 @@ final class BackendRegistryService {
     }
 
     /**
-     * Prefer lobby, then try, then any other registered backend — excluding {@code excludeName}.
+     * Prefer lobby, then try, using group playerDistribution when present;
+     * otherwise first registered lobby/try/any — excluding {@code excludeName}.
      */
     Optional<RegisteredServer> resolveInitialServer(String excludeName) {
-        String exclude = excludeName == null ? "" : sanitizeName(excludeName);
         BackendRegistry registry = lastApplied.get();
-        Optional<RegisteredServer> lobby = firstRegisteredWithRole(registry, ProxyBackendRole.LOBBY, exclude);
-        if (lobby.isPresent()) {
-            return lobby;
-        }
-        Optional<RegisteredServer> tryRole = firstRegisteredWithRole(registry, ProxyBackendRole.TRY, exclude);
-        if (tryRole.isPresent()) {
-            return tryRole;
-        }
-        for (BackendEntry entry : registry.validBackends()) {
-            String name = sanitizeName(entry.getName());
-            if (name.isEmpty() || name.equals(exclude)) {
+        List<ConnectionTactics.Candidate> candidates = ConnectionTactics.candidatesFrom(
+                registry.validBackends(),
+                name -> proxy.getServer(sanitizeName(name))
+                        .map(s -> s.getPlayersConnected().size())
+                        .orElse(-1)
+        );
+        // Only consider backends that are actually registered on Velocity.
+        List<ConnectionTactics.Candidate> registered = new ArrayList<>();
+        for (ConnectionTactics.Candidate c : candidates) {
+            String name = sanitizeName(c.name());
+            if (name.isEmpty()) {
                 continue;
             }
-            Optional<RegisteredServer> server = proxy.getServer(name);
+            if (proxy.getServer(name).isPresent()) {
+                registered.add(c);
+            }
+        }
+        String picked = ConnectionTactics.pickInitialServer(registered, excludeName, roundRobin);
+        if (picked != null) {
+            Optional<RegisteredServer> server = proxy.getServer(sanitizeName(picked));
             if (server.isPresent()) {
                 return server;
             }
         }
+        String exclude = excludeName == null ? "" : sanitizeName(excludeName);
         for (RegisteredServer server : proxy.getAllServers()) {
             String name = sanitizeName(server.getServerInfo().getName());
             if (!name.isEmpty() && !name.equals(exclude)) {
@@ -156,27 +164,6 @@ final class BackendRegistryService {
         logger.info("Applied backend registry: +{} ~{} -{} (total {})",
                 registered, updated, removed, desiredByName.size());
         return new ApplyResult(registered, updated, removed, desiredByName.size());
-    }
-
-    private Optional<RegisteredServer> firstRegisteredWithRole(
-            BackendRegistry registry,
-            ProxyBackendRole role,
-            String exclude
-    ) {
-        for (BackendEntry entry : registry.validBackends()) {
-            if (entry.getRole() != role) {
-                continue;
-            }
-            String name = sanitizeName(entry.getName());
-            if (name.isEmpty() || name.equals(exclude)) {
-                continue;
-            }
-            Optional<RegisteredServer> server = proxy.getServer(name);
-            if (server.isPresent()) {
-                return server;
-            }
-        }
-        return Optional.empty();
     }
 
     private void evacuatePlayers(RegisteredServer leaving, String leavingName) {
