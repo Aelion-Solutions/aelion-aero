@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.6.4](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.3...v0.6.4) (2026-08-21)
+
+
+### Features
+
+* add connection tactic basics and add async support to remove load from maint ([01f6244](https://github.com/Aelion-Solutions/aelion-aero/commit/01f6244f1dfd6daf726392c52da1ab56c1af09cb))
+* **proxy:** pick best lobby via group connection tactics ([f31dbda](https://github.com/Aelion-Solutions/aelion-aero/commit/f31dbda01ba93c25e85268ad76fec185954ac643))
+
+
+### Performance Improvements
+
+* keep panel I/O off the game thread ([2887720](https://github.com/Aelion-Solutions/aelion-aero/commit/288772084c1729b9c8f9229e914a33a5cb98c578))
+
 ## [0.6.3](https://github.com/Aelion-Solutions/aelion-aero/compare/v0.6.2...v0.6.3) (2026-07-28)
 
 
