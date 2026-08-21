@@ -3,22 +3,22 @@ package com.aelion.aero.bukkit;
 import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.api.FleetGroupSnapshot;
 import com.aelion.aero.api.FleetServerSnapshot;
-import com.aelion.aero.common.api.GroupInfoResponse;
+import com.aelion.aero.common.AeroIo;
 import com.aelion.aero.common.api.HttpPanelClient;
-import com.aelion.aero.common.api.PanelApiException;
-import com.aelion.aero.common.api.PanelNotConfiguredException;
-import com.aelion.aero.common.api.ServerInfoResponse;
+import com.aelion.aero.common.api.PanelClient;
+import com.aelion.aero.common.api.PanelHttp;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.fleet.FleetSnapshotCache;
 import com.aelion.aero.common.fleet.FleetTransferResolver;
 import com.aelion.aero.common.util.Strings;
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.bukkit.Bukkit;
@@ -29,46 +29,63 @@ import org.bukkit.plugin.messaging.PluginMessageListener;
 
 /**
  * Cached panel fleet access + BungeeCord Connect for first-party plugins.
+ *
+ * <p>{@link #listServers()} / {@link #listGroups()} are volatile reads. Panel I/O runs on
+ * {@link AeroIo}, never on the game thread.
  */
 public final class BukkitFleetService implements AeroFleetService, PluginMessageListener {
 
     private static final String BUNGEE_CHANNEL = "BungeeCord";
-    private static final long DEFAULT_TTL_MS = 2_000L;
     private static final String DEFAULT_KICK_MESSAGE = ChatColor.YELLOW + "Kicked by Aelion Aero.";
 
     private final JavaPlugin plugin;
     private final Logger logger;
     private final AtomicReference<AeroConfig> configRef;
-    private final long ttlMs;
+    private final FleetSnapshotCache cache;
+    private final AeroIo aeroIo;
 
-    private volatile List<FleetServerSnapshot> servers = Collections.emptyList();
-    private volatile List<FleetGroupSnapshot> groups = Collections.emptyList();
-    private volatile long fetchedAtMs;
-    private volatile String lastError;
-
-    public BukkitFleetService(JavaPlugin plugin, AtomicReference<AeroConfig> configRef) {
-        this(plugin, configRef, DEFAULT_TTL_MS);
-    }
-
-    public BukkitFleetService(JavaPlugin plugin, AtomicReference<AeroConfig> configRef, long ttlMs) {
+    public BukkitFleetService(
+            JavaPlugin plugin,
+            AtomicReference<AeroConfig> configRef,
+            Supplier<PanelHttp> panelHttp,
+            AeroIo aeroIo
+    ) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
         this.configRef = configRef;
-        this.ttlMs = Math.max(500L, ttlMs);
+        this.aeroIo = aeroIo;
+        Function<AeroConfig, PanelClient> clients = config -> {
+            PanelHttp http = panelHttp == null ? null : panelHttp.get();
+            return http == null
+                    ? new HttpPanelClient(config)
+                    : http.panelClient(config);
+        };
+        this.cache = new FleetSnapshotCache(
+                configRef::get,
+                clients,
+                (message, thrown) -> {
+                    if (thrown == null) {
+                        logger.log(Level.WARNING, message);
+                    } else {
+                        logger.log(Level.WARNING, message, thrown);
+                    }
+                });
     }
 
     public void start() {
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, BUNGEE_CHANNEL);
         plugin.getServer().getMessenger().registerIncomingPluginChannel(plugin, BUNGEE_CHANNEL, this);
+        cache.start(aeroIo);
     }
 
     public void stop() {
+        cache.stop();
         plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, BUNGEE_CHANNEL);
         plugin.getServer().getMessenger().unregisterIncomingPluginChannel(plugin, BUNGEE_CHANNEL, this);
     }
 
     public String lastError() {
-        return lastError;
+        return cache.lastError();
     }
 
     @Override
@@ -78,41 +95,18 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
     }
 
     @Override
-    public synchronized void refresh() {
-        AeroConfig config = configRef.get();
-        if (config == null || !config.isPanelConfigured()) {
-            lastError = "Aero panel not configured";
-            return;
-        }
-        try {
-            HttpPanelClient client = new HttpPanelClient(config);
-            List<ServerInfoResponse> serverResponses = client.listServers();
-            List<GroupInfoResponse> groupResponses = client.listGroups();
-            this.servers = mapServers(serverResponses);
-            this.groups = mapGroups(groupResponses);
-            this.fetchedAtMs = System.currentTimeMillis();
-            this.lastError = null;
-        } catch (PanelNotConfiguredException e) {
-            lastError = "Aero panel not configured";
-        } catch (PanelApiException e) {
-            lastError = "Panel HTTP " + e.statusCode() + ": " + e.getMessage();
-            logger.log(Level.WARNING, "Fleet refresh failed: " + lastError);
-        } catch (RuntimeException e) {
-            lastError = e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage();
-            logger.log(Level.WARNING, "Fleet refresh failed", e);
-        }
+    public void refresh() {
+        cache.refresh();
     }
 
     @Override
     public List<FleetServerSnapshot> listServers() {
-        ensureFresh();
-        return servers;
+        return cache.listServers();
     }
 
     @Override
     public List<FleetGroupSnapshot> listGroups() {
-        ensureFresh();
-        return groups;
+        return cache.listGroups();
     }
 
     @Override
@@ -182,80 +176,5 @@ public final class BukkitFleetService implements AeroFleetService, PluginMessage
     @Override
     public void onPluginMessageReceived(String channel, Player player, byte[] message) {
         // Outgoing Connect only; ignore replies.
-    }
-
-    private void ensureFresh() {
-        if (System.currentTimeMillis() - fetchedAtMs > ttlMs) {
-            refresh();
-        }
-    }
-
-    private static List<FleetServerSnapshot> mapServers(List<ServerInfoResponse> responses) {
-        if (responses == null || responses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<FleetServerSnapshot> out = new ArrayList<>(responses.size());
-        for (ServerInfoResponse r : responses) {
-            out.add(mapServer(r));
-        }
-        return Collections.unmodifiableList(out);
-    }
-
-    private static FleetServerSnapshot mapServer(ServerInfoResponse r) {
-        String proxy = Strings.isBlank(r.getProxyName()) ? r.getName() : r.getProxyName();
-        return new FleetServerSnapshot(
-                r.getId(),
-                r.getName(),
-                r.getStatus(),
-                r.getSoftware(),
-                r.getLiveStatus(),
-                r.getCurrentPlayers(),
-                r.getMaxPlayers(),
-                r.getGroupId(),
-                r.getGroupName(),
-                r.isJoinable(),
-                proxy,
-                r.getMotd()
-        );
-    }
-
-    private static List<FleetGroupSnapshot> mapGroups(List<GroupInfoResponse> responses) {
-        if (responses == null || responses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<FleetGroupSnapshot> out = new ArrayList<>(responses.size());
-        for (GroupInfoResponse g : responses) {
-            List<FleetServerSnapshot> members = new ArrayList<>();
-            if (g.getMembers() != null) {
-                for (GroupInfoResponse.GroupMemberInfo m : g.getMembers()) {
-                    String proxy = Strings.isBlank(m.getProxyName()) ? m.getName() : m.getProxyName();
-                    members.add(new FleetServerSnapshot(
-                            m.getId(),
-                            m.getName(),
-                            null,
-                            null,
-                            m.getLiveStatus(),
-                            m.getCurrentPlayers(),
-                            m.getMaxPlayers(),
-                            g.getId(),
-                            g.getName(),
-                            m.isJoinable(),
-                            proxy,
-                            m.getMotd()
-                    ));
-                }
-            }
-            out.add(new FleetGroupSnapshot(
-                    g.getId(),
-                    g.getName(),
-                    g.getStatus(),
-                    g.getCurrentPlayers(),
-                    g.getMaxPlayers(),
-                    g.getMemberCount(),
-                    g.getLiveStatus(),
-                    members
-            ));
-        }
-        return Collections.unmodifiableList(out);
     }
 }

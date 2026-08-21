@@ -2,6 +2,10 @@ package com.aelion.aero.bukkit;
 
 import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.common.AeroConstants;
+import com.aelion.aero.common.AeroIo;
+import com.aelion.aero.common.api.HttpPanelClient;
+import com.aelion.aero.common.api.PanelClient;
+import com.aelion.aero.common.api.PanelHttp;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.config.AeroConfigLoader;
 import java.io.IOException;
@@ -18,6 +22,9 @@ public final class BukkitAeroBootstrap {
     private final JavaPlugin plugin;
     private final AtomicReference<AeroConfig> configRef =
             new AtomicReference<>(AeroConfig.empty());
+    private PanelHttp panelHttp;
+    private AeroIo aeroIo;
+    private OnlineRoster roster;
     private BukkitFleetService fleetService;
     private BukkitControlHttpServer controlHttpServer;
     private MotdTracker motdTracker;
@@ -39,6 +46,14 @@ public final class BukkitAeroBootstrap {
         return fleetService;
     }
 
+    public PanelClient panelClient() {
+        AeroConfig cfg = config();
+        if (panelHttp == null) {
+            return new HttpPanelClient(cfg);
+        }
+        return panelHttp.panelClient(cfg);
+    }
+
     public void enableWithClassicCommands() {
         if (!loadConfigOrShutdown()) {
             return;
@@ -48,7 +63,8 @@ public final class BukkitAeroBootstrap {
                 plugin,
                 this::config,
                 this::reloadAeroConfig,
-                fleetService);
+                fleetService,
+                this::panelClient);
         BukkitAeroCommandExecutor.register(
                 plugin,
                 executor,
@@ -58,7 +74,7 @@ public final class BukkitAeroBootstrap {
     }
 
     /**
-     * Fleet + config only — caller registers Brigadier (or other) commands.
+     * Fleet + config only - caller registers Brigadier (or other) commands.
      */
     public void enableFleetOnly() {
         if (!loadConfigOrShutdown()) {
@@ -69,7 +85,11 @@ public final class BukkitAeroBootstrap {
     }
 
     private void startFleet() {
-        fleetService = new BukkitFleetService(plugin, configRef);
+        ensureRuntime();
+        if (roster == null) {
+            roster = new OnlineRoster(plugin);
+        }
+        fleetService = new BukkitFleetService(plugin, configRef, () -> panelHttp, aeroIo);
         fleetService.start();
         plugin.getServer().getServicesManager().register(
                 AeroFleetService.class,
@@ -77,8 +97,13 @@ public final class BukkitAeroBootstrap {
                 plugin,
                 ServicePriority.Normal);
         motdTracker = new MotdTracker(plugin);
-        selfStatusReporter = new SelfStatusReporter(plugin, configRef, motdTracker);
+        selfStatusReporter = new SelfStatusReporter(
+                configRef, motdTracker, roster, () -> panelHttp, aeroIo, plugin.getLogger());
         selfStatusReporter.start();
+        if (controlHttpServer != null) {
+            controlHttpServer.setRoster(roster);
+            controlHttpServer.setPanelClientSupplier(this::panelClient);
+        }
     }
 
     /**
@@ -97,7 +122,7 @@ public final class BukkitAeroBootstrap {
                     Level.SEVERE,
                     "Aero control API is required (control.enabled=true) but failed to start: "
                             + e.getMessage()
-                            + " — shutting down server to avoid running without a daemon shutdown listener.",
+                            + " - shutting down server to avoid running without a daemon shutdown listener.",
                     e);
             plugin.getServer().shutdown();
             return false;
@@ -117,6 +142,14 @@ public final class BukkitAeroBootstrap {
         if (fleetService != null) {
             fleetService.stop();
         }
+        if (aeroIo != null) {
+            aeroIo.close();
+            aeroIo = null;
+        }
+        if (panelHttp != null) {
+            panelHttp.close();
+            panelHttp = null;
+        }
         plugin.getLogger().info(AeroConstants.NAME + " disabled");
     }
 
@@ -134,7 +167,21 @@ public final class BukkitAeroBootstrap {
                     plugin.getDataFolder().toPath(),
                     plugin.getConfig()));
         }
+        ensureRuntime();
         restartControlServer();
+    }
+
+    private void ensureRuntime() {
+        boolean insecure = config().panelInsecureSsl();
+        if (panelHttp == null || panelHttp.insecureSsl() != insecure) {
+            if (panelHttp != null) {
+                panelHttp.close();
+            }
+            panelHttp = new PanelHttp(insecure);
+        }
+        if (aeroIo == null) {
+            aeroIo = new AeroIo();
+        }
     }
 
     /**
@@ -146,7 +193,11 @@ public final class BukkitAeroBootstrap {
      */
     private void restartControlServer() throws IOException {
         if (controlHttpServer == null) {
-            controlHttpServer = new BukkitControlHttpServer(plugin, configRef, this::fleetService);
+            controlHttpServer = new BukkitControlHttpServer(
+                    plugin, configRef, this::fleetService, this::panelClient, roster);
+        } else {
+            controlHttpServer.setRoster(roster);
+            controlHttpServer.setPanelClientSupplier(this::panelClient);
         }
         try {
             controlHttpServer.start(config().control());

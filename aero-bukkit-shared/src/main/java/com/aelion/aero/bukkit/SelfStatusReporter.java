@@ -1,59 +1,75 @@
 package com.aelion.aero.bukkit;
 
+import com.aelion.aero.common.AeroIo;
 import com.aelion.aero.common.api.HttpPanelClient;
 import com.aelion.aero.common.api.PanelApiException;
+import com.aelion.aero.common.api.PanelClient;
+import com.aelion.aero.common.api.PanelHttp;
 import com.aelion.aero.common.api.PanelNotConfiguredException;
 import com.aelion.aero.common.api.SelfStatusRequest;
 import com.aelion.aero.common.config.AeroConfig;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import org.bukkit.Bukkit;
-import org.bukkit.plugin.java.JavaPlugin;
-import org.bukkit.scheduler.BukkitTask;
 
 /**
  * Periodically pushes live MOTD / player counts to {@code POST /api/aero/v1/self/status}.
+ *
+ * <p>Runs on {@link AeroIo}, not the Bukkit primary thread. Player counts come from
+ * {@link OnlineRoster}.
  */
 public final class SelfStatusReporter {
 
-    private static final long PERIOD_TICKS = 60L; // 3s at 20 TPS
+    private static final long PERIOD_MS = 3_000L;
 
-    private final JavaPlugin plugin;
     private final AtomicReference<AeroConfig> configRef;
     private final MotdTracker motdTracker;
+    private final OnlineRoster roster;
+    private final Supplier<PanelHttp> panelHttp;
+    private final AeroIo aeroIo;
     private final Logger logger;
     private final AtomicBoolean pushInFlight = new AtomicBoolean(false);
-    private BukkitTask task;
+    private ScheduledFuture<?> task;
     private String lastMotdSent;
     private int lastPlayersSent = Integer.MIN_VALUE;
     private int lastMaxSent = Integer.MIN_VALUE;
 
-    public SelfStatusReporter(
-            JavaPlugin plugin,
+    SelfStatusReporter(
             AtomicReference<AeroConfig> configRef,
-            MotdTracker motdTracker
+            MotdTracker motdTracker,
+            OnlineRoster roster,
+            Supplier<PanelHttp> panelHttp,
+            AeroIo aeroIo,
+            Logger logger
     ) {
-        this.plugin = plugin;
         this.configRef = configRef;
         this.motdTracker = motdTracker;
-        this.logger = plugin.getLogger();
+        this.roster = roster;
+        this.panelHttp = panelHttp;
+        this.aeroIo = aeroIo;
+        this.logger = logger;
     }
 
     public void start() {
         stop();
-        task = Bukkit.getScheduler().runTaskTimer(plugin, new Runnable() {
+        if (aeroIo == null) {
+            return;
+        }
+        task = aeroIo.scheduleWithFixedDelay(new Runnable() {
             @Override
             public void run() {
                 schedulePush();
             }
-        }, PERIOD_TICKS, PERIOD_TICKS);
+        }, PERIOD_MS, PERIOD_MS, TimeUnit.MILLISECONDS);
     }
 
     public void stop() {
         if (task != null) {
-            task.cancel();
+            task.cancel(false);
             task = null;
         }
     }
@@ -64,34 +80,28 @@ public final class SelfStatusReporter {
             return;
         }
         final String motd = motdTracker.motd();
-        final int players = Bukkit.getOnlinePlayers().size();
-        final int max = Bukkit.getMaxPlayers();
+        final int players = roster.size();
+        final int max = roster.maxPlayers();
         if (unchanged(motd, players, max) || !pushInFlight.compareAndSet(false, true)) {
             return;
         }
-        enqueuePush(config, motd, players, max);
+        try {
+            pushStatus(config, motd, players, max);
+        } finally {
+            pushInFlight.set(false);
+        }
     }
 
     private boolean unchanged(String motd, int players, int max) {
         return motd.equals(lastMotdSent) && players == lastPlayersSent && max == lastMaxSent;
     }
 
-    private void enqueuePush(final AeroConfig cfg, final String motd, final int players, final int max) {
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    pushStatus(cfg, motd, players, max);
-                } finally {
-                    pushInFlight.set(false);
-                }
-            }
-        });
-    }
-
     private void pushStatus(AeroConfig cfg, String motd, int players, int max) {
         try {
-            HttpPanelClient client = new HttpPanelClient(cfg);
+            PanelHttp http = panelHttp == null ? null : panelHttp.get();
+            PanelClient client = http == null
+                    ? new HttpPanelClient(cfg)
+                    : http.panelClient(cfg);
             client.postSelfStatus(new SelfStatusRequest(motd, players, max));
             lastMotdSent = motd;
             lastPlayersSent = players;

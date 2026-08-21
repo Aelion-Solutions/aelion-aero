@@ -2,15 +2,13 @@ package com.aelion.aero.common.control;
 
 import com.aelion.aero.api.FleetGroupSnapshot;
 import com.aelion.aero.api.FleetServerSnapshot;
-import com.aelion.aero.common.api.GroupInfoResponse;
-import com.aelion.aero.common.api.HttpPanelClient;
 import com.aelion.aero.common.api.PanelApiException;
+import com.aelion.aero.common.api.PanelClient;
 import com.aelion.aero.common.api.PanelNotConfiguredException;
-import com.aelion.aero.common.api.ServerInfoResponse;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.fleet.FleetSnapshotCache;
 import com.aelion.aero.common.fleet.FleetTransferResolver;
 import com.aelion.aero.common.util.Strings;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -63,6 +61,22 @@ public final class ControlTransferResolver {
             List<FleetGroupSnapshot> knownGroups,
             List<String> registryBackendNames
     ) {
+        return resolve(req, config, knownServers, knownGroups, registryBackendNames, null);
+    }
+
+    /**
+     * Same as {@link #resolve(ControlTransferRequest, AeroConfig, List, List, List)} with an
+     * optional shared {@link PanelClient} for the empty-cache panel fallback. Does not construct
+     * a new OkHttp client.
+     */
+    public static Result resolve(
+            ControlTransferRequest req,
+            AeroConfig config,
+            List<FleetServerSnapshot> knownServers,
+            List<FleetGroupSnapshot> knownGroups,
+            List<String> registryBackendNames,
+            PanelClient panelClient
+    ) {
         if (req == null || Strings.isBlank(req.getUuid())) {
             return Result.error("uuid is required");
         }
@@ -88,11 +102,13 @@ public final class ControlTransferResolver {
                 ? Collections.<FleetGroupSnapshot>emptyList()
                 : knownGroups;
 
-        if ((servers.isEmpty() && groups.isEmpty()) && config != null && config.isPanelConfigured()) {
+        if ((servers.isEmpty() && groups.isEmpty())
+                && panelClient != null
+                && config != null
+                && config.isPanelConfigured()) {
             try {
-                HttpPanelClient client = new HttpPanelClient(config);
-                servers = mapServers(client.listServers());
-                groups = mapGroups(client.listGroups());
+                servers = FleetSnapshotCache.mapServers(panelClient.listServers());
+                groups = FleetSnapshotCache.mapGroups(panelClient.listGroups());
             } catch (PanelNotConfiguredException | PanelApiException e) {
                 return Result.error("panel fleet unavailable: " + e.getMessage());
             }
@@ -130,68 +146,5 @@ public final class ControlTransferResolver {
             return b.trim();
         }
         return "";
-    }
-
-    private static List<FleetServerSnapshot> mapServers(List<ServerInfoResponse> responses) {
-        if (responses == null || responses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<FleetServerSnapshot> out = new ArrayList<>(responses.size());
-        for (ServerInfoResponse r : responses) {
-            String proxy = Strings.isBlank(r.getProxyName()) ? r.getName() : r.getProxyName();
-            out.add(new FleetServerSnapshot(
-                    r.getId(),
-                    r.getName(),
-                    r.getStatus(),
-                    r.getSoftware(),
-                    r.getLiveStatus(),
-                    r.getCurrentPlayers(),
-                    r.getMaxPlayers(),
-                    r.getGroupId(),
-                    r.getGroupName(),
-                    r.isJoinable(),
-                    proxy
-            ));
-        }
-        return out;
-    }
-
-    private static List<FleetGroupSnapshot> mapGroups(List<GroupInfoResponse> responses) {
-        if (responses == null || responses.isEmpty()) {
-            return Collections.emptyList();
-        }
-        List<FleetGroupSnapshot> out = new ArrayList<>(responses.size());
-        for (GroupInfoResponse g : responses) {
-            List<FleetServerSnapshot> members = new ArrayList<>();
-            if (g.getMembers() != null) {
-                for (GroupInfoResponse.GroupMemberInfo m : g.getMembers()) {
-                    String proxy = Strings.isBlank(m.getProxyName()) ? m.getName() : m.getProxyName();
-                    members.add(new FleetServerSnapshot(
-                            m.getId(),
-                            m.getName(),
-                            null,
-                            null,
-                            m.getLiveStatus(),
-                            m.getCurrentPlayers(),
-                            m.getMaxPlayers(),
-                            g.getId(),
-                            g.getName(),
-                            m.isJoinable(),
-                            proxy
-                    ));
-                }
-            }
-            out.add(new FleetGroupSnapshot(
-                    g.getId(),
-                    g.getName(),
-                    g.getStatus(),
-                    g.getCurrentPlayers(),
-                    g.getMaxPlayers(),
-                    g.getMemberCount(),
-                    g.getLiveStatus(),
-                    members
-            ));
-        }
-        return out;
     }
 }

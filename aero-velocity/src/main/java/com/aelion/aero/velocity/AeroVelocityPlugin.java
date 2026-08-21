@@ -2,6 +2,9 @@ package com.aelion.aero.velocity;
 
 import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.AeroVersion;
+import com.aelion.aero.common.api.HttpPanelClient;
+import com.aelion.aero.common.api.PanelClient;
+import com.aelion.aero.common.api.PanelHttp;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.config.AeroConfigLoader;
 import com.aelion.aero.common.fleet.FleetNotifyService;
@@ -34,6 +37,7 @@ public final class AeroVelocityPlugin {
     private final Path dataDirectory;
 
     private AeroConfig aeroConfig = AeroConfig.empty();
+    private PanelHttp panelHttp;
     private BackendRegistryService registryService;
     private ControlHttpServer controlHttpServer;
     private FleetNotifyService notifyService;
@@ -77,6 +81,10 @@ public final class AeroVelocityPlugin {
         if (controlHttpServer != null) {
             controlHttpServer.stop();
         }
+        if (panelHttp != null) {
+            panelHttp.close();
+            panelHttp = null;
+        }
         logger.info("{} disabled", AeroConstants.NAME);
     }
 
@@ -86,6 +94,14 @@ public final class AeroVelocityPlugin {
 
     public AeroConfig aeroConfig() {
         return aeroConfig;
+    }
+
+    public PanelClient panelClient() {
+        AeroConfig cfg = aeroConfig;
+        if (panelHttp == null) {
+            return new HttpPanelClient(cfg);
+        }
+        return panelHttp.panelClient(cfg);
     }
 
     BackendRegistryService registryService() {
@@ -107,6 +123,7 @@ public final class AeroVelocityPlugin {
                 dataDirectory,
                 getClass().getClassLoader(),
                 msg -> logger.info(msg));
+        ensurePanelHttp();
         if (controlHttpServer != null) {
             try {
                 controlHttpServer.start(aeroConfig.control());
@@ -115,5 +132,16 @@ public final class AeroVelocityPlugin {
                 throw e;
             }
         }
+    }
+
+    private void ensurePanelHttp() {
+        boolean insecure = aeroConfig.panelInsecureSsl();
+        if (panelHttp != null && panelHttp.insecureSsl() == insecure) {
+            return;
+        }
+        if (panelHttp != null) {
+            panelHttp.close();
+        }
+        panelHttp = new PanelHttp(insecure);
     }
 }

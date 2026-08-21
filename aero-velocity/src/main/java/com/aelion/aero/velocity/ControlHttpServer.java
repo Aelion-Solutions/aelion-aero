@@ -242,7 +242,8 @@ final class ControlHttpServer {
                 plugin.aeroConfig(),
                 Collections.emptyList(),
                 Collections.emptyList(),
-                registryNames);
+                registryNames,
+                plugin.panelClient());
         if (!resolved.isOk()) {
             send(exchange, 400, "{\"error\":" + AeroJson.mapper().writeValueAsString(resolved.error()) + "}");
             return;
