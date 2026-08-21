@@ -8,7 +8,7 @@ import java.util.UUID;
  *
  * <p>First-party plugins (Signs, NPCs, …) obtain this service from Bukkit
  * {@code ServicesManager} and must <strong>not</strong> carry their own panel tokens.
- * Aero owns panel credentials and caches fleet polls.
+ * Aero owns panel credentials and a background-refreshed fleet cache.
  *
  * <h2>Lifecycle</h2>
  * <ul>
@@ -19,8 +19,9 @@ import java.util.UUID;
  * </ul>
  *
  * <h2>Caching</h2>
- * {@link #listServers()} and {@link #listGroups()} use a short TTL cache (about 2&nbsp;s in
- * the stock implementation). Call {@link #refresh()} to force a panel round-trip.
+ * {@link #listServers()} and {@link #listGroups()} return the last snapshot and never perform
+ * I/O. Aero refreshes that snapshot in the background (about every 2&nbsp;s). Call
+ * {@link #refresh()} to force a blocking panel round-trip; do not call it from the game thread.
  *
  * <p>Published as {@code com.aelion.aero:aero-api} on GitHub Packages.
  *
@@ -38,31 +39,32 @@ public interface AeroFleetService {
     boolean isConfigured();
 
     /**
-     * Force a panel refresh of servers and groups.
+     * Force a blocking panel refresh of servers and groups.
      *
-     * <p>Otherwise {@link #listServers()} / {@link #listGroups()} reuse a short TTL cache.
-     * Failures are logged by Aero; subsequent list calls may still return the last
-     * successful snapshot (or empty if none).
+     * <p>Must not run on the Bukkit/Paper primary thread. Concurrent refreshes are
+     * single-flight (a second call is skipped while one is in progress). Failures are
+     * logged by Aero; subsequent list calls may still return the last successful snapshot
+     * (or empty if none).
      */
     void refresh();
 
     /**
-     * Same-owner fleet servers from the panel Aero API.
+     * Same-owner fleet servers from the last Aero snapshot.
      *
-     * <p>May trigger a cached refresh. The returned list is unmodifiable; elements are
+     * <p>Does not trigger I/O. The returned list is unmodifiable; elements are
      * immutable snapshots and must not be mutated.
      *
-     * @return fleet servers, never {@code null} (empty when unconfigured or on error)
+     * @return fleet servers, never {@code null} (empty when unconfigured, not yet refreshed, or on error)
      */
     List<FleetServerSnapshot> listServers();
 
     /**
-     * Same-owner server groups (with member snapshots) from the panel Aero API.
+     * Same-owner server groups (with member snapshots) from the last Aero snapshot.
      *
-     * <p>May trigger a cached refresh. The returned list is unmodifiable; member lists
+     * <p>Does not trigger I/O. The returned list is unmodifiable; member lists
      * inside each group are also unmodifiable.
      *
-     * @return fleet groups, never {@code null} (empty when unconfigured or on error)
+     * @return fleet groups, never {@code null} (empty when unconfigured, not yet refreshed, or on error)
      */
     List<FleetGroupSnapshot> listGroups();
 

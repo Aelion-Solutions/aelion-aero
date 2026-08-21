@@ -5,6 +5,7 @@ import com.aelion.aero.common.Permissions;
 import com.aelion.aero.common.command.AeroCommandMessages;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.api.PanelClient;
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
@@ -99,6 +100,11 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
         }
 
         @Override
+        public PanelClient panelClient() {
+            return plugin.panelClient();
+        }
+
+        @Override
         public boolean isProxy() {
             return true;
         }
@@ -159,7 +165,8 @@ final class AeroBungeeCommand extends Command implements TabExecutor {
                     plugin.aeroConfig(),
                     Collections.emptyList(),
                     Collections.emptyList(),
-                    registryNames);
+                    registryNames,
+                    plugin.panelClient());
             if (!resolved.isOk()) {
                 return false;
             }

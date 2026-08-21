@@ -2,12 +2,14 @@ package com.aelion.aero.bukkit;
 
 import com.aelion.aero.api.AeroFleetService;
 import com.aelion.aero.common.Permissions;
+import com.aelion.aero.common.api.PanelClient;
 import com.aelion.aero.common.command.AeroCommandMessages;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
 import com.aelion.aero.common.util.Strings;
 import java.util.Collections;
 import java.util.List;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import org.bukkit.Bukkit;
 import org.bukkit.command.Command;
@@ -26,6 +28,7 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
     private final AeroConfigSupplier configSupplier;
     private final AeroReloadAction reloadAction;
     private final AeroFleetService fleetService;
+    private final Supplier<PanelClient> panelClientSupplier;
 
     public BukkitAeroCommandExecutor(
             JavaPlugin plugin,
@@ -33,10 +36,21 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
             AeroReloadAction reloadAction,
             AeroFleetService fleetService
     ) {
+        this(plugin, configSupplier, reloadAction, fleetService, null);
+    }
+
+    public BukkitAeroCommandExecutor(
+            JavaPlugin plugin,
+            AeroConfigSupplier configSupplier,
+            AeroReloadAction reloadAction,
+            AeroFleetService fleetService,
+            Supplier<PanelClient> panelClientSupplier
+    ) {
         this.plugin = plugin;
         this.configSupplier = configSupplier;
         this.reloadAction = reloadAction;
         this.fleetService = fleetService;
+        this.panelClientSupplier = panelClientSupplier;
     }
 
     @Override
@@ -124,6 +138,17 @@ public final class BukkitAeroCommandExecutor implements CommandExecutor, TabComp
         @Override
         public void reloadConfig() throws Exception {
             reloadAction.run();
+        }
+
+        @Override
+        public PanelClient panelClient() {
+            if (panelClientSupplier != null) {
+                PanelClient client = panelClientSupplier.get();
+                if (client != null) {
+                    return client;
+                }
+            }
+            return AeroCommandService.Platform.super.panelClient();
         }
 
         @Override

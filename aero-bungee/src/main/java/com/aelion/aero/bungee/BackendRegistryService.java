@@ -2,7 +2,7 @@ package com.aelion.aero.bungee;
 
 import com.aelion.aero.common.control.BackendEntry;
 import com.aelion.aero.common.control.BackendRegistry;
-import com.aelion.aero.common.control.ProxyBackendRole;
+import com.aelion.aero.common.control.ConnectionTactics;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,6 +31,7 @@ final class BackendRegistryService {
     private final Logger logger;
     private final AtomicReference<BackendRegistry> lastApplied =
             new AtomicReference<>(new BackendRegistry());
+    private final ConnectionTactics.RoundRobinState roundRobin = new ConnectionTactics.RoundRobinState();
 
     BackendRegistryService(ProxyServer proxy, Logger logger) {
         this.proxy = proxy;
@@ -42,26 +43,32 @@ final class BackendRegistryService {
     }
 
     Optional<ServerInfo> resolveInitialServer(String excludeName) {
-        String exclude = excludeName == null ? "" : sanitizeName(excludeName);
         BackendRegistry registry = lastApplied.get();
-        Optional<ServerInfo> lobby = firstWithRole(registry, ProxyBackendRole.LOBBY, exclude);
-        if (lobby.isPresent()) {
-            return lobby;
-        }
-        Optional<ServerInfo> tryRole = firstWithRole(registry, ProxyBackendRole.TRY, exclude);
-        if (tryRole.isPresent()) {
-            return tryRole;
-        }
-        for (BackendEntry entry : registry.validBackends()) {
-            String name = sanitizeName(entry.getName());
-            if (name.isEmpty() || name.equals(exclude)) {
+        List<ConnectionTactics.Candidate> candidates = ConnectionTactics.candidatesFrom(
+                registry.validBackends(),
+                name -> {
+                    ServerInfo info = proxy.getServerInfo(sanitizeName(name));
+                    return info == null ? -1 : info.getPlayers().size();
+                }
+        );
+        List<ConnectionTactics.Candidate> registered = new ArrayList<>();
+        for (ConnectionTactics.Candidate c : candidates) {
+            String name = sanitizeName(c.name());
+            if (name.isEmpty()) {
                 continue;
             }
-            ServerInfo info = proxy.getServerInfo(name);
+            if (proxy.getServerInfo(name) != null) {
+                registered.add(c);
+            }
+        }
+        String picked = ConnectionTactics.pickInitialServer(registered, excludeName, roundRobin);
+        if (picked != null) {
+            ServerInfo info = proxy.getServerInfo(sanitizeName(picked));
             if (info != null) {
                 return Optional.of(info);
             }
         }
+        String exclude = excludeName == null ? "" : sanitizeName(excludeName);
         for (ServerInfo info : proxy.getServers().values()) {
             String name = sanitizeName(info.getName());
             if (!name.isEmpty() && !name.equals(exclude)) {
@@ -136,23 +143,6 @@ final class BackendRegistryService {
         logger.info("Applied backend registry: +" + registered + " ~" + updated + " -" + removed
                 + " (total " + desiredByName.size() + ")");
         return new ApplyResult(registered, updated, removed, desiredByName.size());
-    }
-
-    private Optional<ServerInfo> firstWithRole(BackendRegistry registry, ProxyBackendRole role, String exclude) {
-        for (BackendEntry entry : registry.validBackends()) {
-            if (entry.getRole() != role) {
-                continue;
-            }
-            String name = sanitizeName(entry.getName());
-            if (name.isEmpty() || name.equals(exclude)) {
-                continue;
-            }
-            ServerInfo info = proxy.getServerInfo(name);
-            if (info != null) {
-                return Optional.of(info);
-            }
-        }
-        return Optional.empty();
     }
 
     private void evacuatePlayers(ServerInfo leaving, String leavingName) {

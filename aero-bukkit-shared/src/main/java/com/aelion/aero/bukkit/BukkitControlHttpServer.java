@@ -11,6 +11,7 @@ import com.aelion.aero.common.control.ControlShutdownResponse;
 import com.aelion.aero.common.control.ControlTransferRequest;
 import com.aelion.aero.common.control.ControlTransferResolver;
 import com.aelion.aero.common.json.AeroJson;
+import com.aelion.aero.common.api.PanelClient;
 import com.aelion.aero.common.util.Strings;
 import com.sun.net.httpserver.Headers;
 import com.sun.net.httpserver.HttpExchange;
@@ -20,7 +21,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
@@ -48,17 +48,31 @@ final class BukkitControlHttpServer {
     private final AtomicReference<AeroConfig> configRef;
     private final Supplier<BukkitFleetService> fleetSupplier;
     private final AtomicBoolean shutdownRequested = new AtomicBoolean(false);
+    private volatile OnlineRoster roster;
+    private volatile Supplier<PanelClient> panelClientSupplier;
     private HttpServer server;
 
     BukkitControlHttpServer(
             JavaPlugin plugin,
             AtomicReference<AeroConfig> configRef,
-            Supplier<BukkitFleetService> fleetSupplier
+            Supplier<BukkitFleetService> fleetSupplier,
+            Supplier<PanelClient> panelClientSupplier,
+            OnlineRoster roster
     ) {
         this.plugin = plugin;
         this.logger = plugin.getLogger();
         this.configRef = configRef;
         this.fleetSupplier = fleetSupplier;
+        this.panelClientSupplier = panelClientSupplier;
+        this.roster = roster;
+    }
+
+    void setRoster(OnlineRoster roster) {
+        this.roster = roster;
+    }
+
+    void setPanelClientSupplier(Supplier<PanelClient> panelClientSupplier) {
+        this.panelClientSupplier = panelClientSupplier;
     }
 
     synchronized void start(AeroConfig.ControlConfig control) throws IOException {
@@ -151,22 +165,10 @@ final class BukkitControlHttpServer {
     }
 
     private void handleListPlayers(HttpExchange exchange) throws IOException {
-        final List<ControlPlayerEntry> entries = new ArrayList<>();
-        try {
-            Bukkit.getScheduler().callSyncMethod(plugin, () -> {
-                for (Player player : Bukkit.getOnlinePlayers()) {
-                    if (player != null) {
-                        entries.add(new ControlPlayerEntry(
-                                player.getUniqueId().toString(),
-                                player.getName()));
-                    }
-                }
-                return Boolean.TRUE;
-            }).get();
-        } catch (Exception e) {
-            send(exchange, 500, "{\"error\":\"list players failed\"}");
-            return;
-        }
+        OnlineRoster current = roster;
+        List<ControlPlayerEntry> entries = current == null
+                ? Collections.<ControlPlayerEntry>emptyList()
+                : current.snapshot();
         sendJson(exchange, 200, ControlPlayersResponse.of(entries));
     }
 
@@ -219,12 +221,14 @@ final class BukkitControlHttpServer {
             return;
         }
         BukkitFleetService fleet = fleetSupplier == null ? null : fleetSupplier.get();
+        Supplier<PanelClient> clients = panelClientSupplier;
         ControlTransferResolver.Result resolved = ControlTransferResolver.resolve(
                 req,
                 configRef.get(),
                 fleet == null ? Collections.emptyList() : fleet.listServers(),
                 fleet == null ? Collections.emptyList() : fleet.listGroups(),
-                null);
+                null,
+                clients == null ? null : clients.get());
         if (!resolved.isOk()) {
             send(exchange, 400, "{\"error\":" + AeroJson.mapper().writeValueAsString(resolved.error()) + "}");
             return;

@@ -6,6 +6,7 @@ import com.aelion.aero.common.AeroConstants;
 import com.aelion.aero.common.Permissions;
 import com.aelion.aero.common.command.AeroCommandService;
 import com.aelion.aero.common.config.AeroConfig;
+import com.aelion.aero.common.api.PanelClient;
 import com.mojang.brigadier.Command;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.tree.LiteralCommandNode;
@@ -198,6 +199,11 @@ public final class AeroPaperPlugin extends JavaPlugin {
         @Override
         public void reloadConfig() throws Exception {
             bootstrap.reloadAeroConfig();
+        }
+
+        @Override
+        public PanelClient panelClient() {
+            return bootstrap.panelClient();
         }
 
         @Override

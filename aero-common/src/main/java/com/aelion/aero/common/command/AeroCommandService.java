@@ -5,6 +5,7 @@ import com.aelion.aero.common.api.CreateServerRequest;
 import com.aelion.aero.common.api.CreateServerResponse;
 import com.aelion.aero.common.api.HttpPanelClient;
 import com.aelion.aero.common.api.PanelApiException;
+import com.aelion.aero.common.api.PanelClient;
 import com.aelion.aero.common.api.PanelHealthResponse;
 import com.aelion.aero.common.api.PanelNotConfiguredException;
 import com.aelion.aero.common.api.ServerInfoResponse;
@@ -96,6 +97,14 @@ public final class AeroCommandService {
         /** {@code true} when this platform supports fleet notify. */
         default boolean supportsNotify() {
             return false;
+        }
+
+        /**
+         * Panel HTTP client for this plugin. Default constructs a one-off client; production
+         * platforms return a client that reuses the shared OkHttp instance.
+         */
+        default PanelClient panelClient() {
+            return new HttpPanelClient(config());
         }
     }
 
@@ -372,13 +381,13 @@ public final class AeroCommandService {
 
         platform.send(AeroCommandStyle.info("Pinging panel…"));
         platform.runAsync(() -> {
-            String result = pingPanel(config);
+            String result = pingPanel(platform);
             platform.runSync(() -> platform.send(result));
         });
     }
 
-    private static String pingPanel(AeroConfig config) {
-        HttpPanelClient client = new HttpPanelClient(config);
+    private static String pingPanel(Platform platform) {
+        PanelClient client = platform.panelClient();
         try {
             PanelHealthResponse health = client.ping();
             return AeroCommandMessages.pingOk(health.isOk(), health.getVersion());
@@ -420,7 +429,7 @@ public final class AeroCommandService {
         platform.runAsync(() -> {
             List<String> lines;
             try {
-                List<ServerInfoResponse> servers = new HttpPanelClient(platform.config()).listServers();
+                List<ServerInfoResponse> servers = platform.panelClient().listServers();
                 lines = AeroCommandMessages.formatServerList(servers, names);
             } catch (PanelNotConfiguredException e) {
                 lines = Collections.singletonList(AeroCommandMessages.panelNotConfigured());
@@ -521,7 +530,7 @@ public final class AeroCommandService {
         platform.runAsync(() -> {
             String result;
             try {
-                CreateServerResponse created = new HttpPanelClient(platform.config()).createServer(req);
+                CreateServerResponse created = platform.panelClient().createServer(req);
                 result = AeroCommandMessages.createServerOk(
                         nullToDash(created.getId()),
                         nullToDash(created.getName()),
